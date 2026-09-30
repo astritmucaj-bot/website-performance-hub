@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import {
   Globe, Search, MousePointerClick, Users, Eye, MessageCircle,
   CalendarCheck, TrendingUp, ArrowUpRight, Lightbulb, Loader2,
-  Smartphone, Monitor, BarChart3
+  Smartphone, Monitor, BarChart3, RefreshCw
 } from "lucide-react";
 import "./styles.css";
 
@@ -162,6 +162,9 @@ function App() {
   const [trafficData, setTrafficData] = React.useState(null);
   const [trafficLoading, setTrafficLoading] = React.useState(true);
   const [trafficError, setTrafficError] = React.useState("");
+  const [refreshKey, setRefreshKey] = React.useState(0);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [lastUpdated, setLastUpdated] = React.useState(null);
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -233,7 +236,7 @@ function App() {
     loadSearchConsole();
 
     return () => controller.abort();
-  }, []);
+  }, [refreshKey]);
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -284,7 +287,15 @@ function App() {
     loadTraffic();
 
     return () => controller.abort();
-  }, [site, trafficDays]);
+  }, [site, trafficDays, refreshKey]);
+
+  React.useEffect(() => {
+    if (!refreshing) return;
+    if (!loading && !trafficLoading && (data || trafficError)) {
+      setLastUpdated(new Date());
+      setRefreshing(false);
+    }
+  }, [refreshing, loading, trafficLoading, data, trafficError]);
 
   const allPageRows = data?.pages || [];
 
@@ -675,6 +686,15 @@ function App() {
           </div>
         </header>
 
+        <div className="mobile-nav">
+          <a href="#overview">Overview</a>
+          <a href="#traffic-section">Traffic</a>
+          <a href="#google-search">Search</a>
+          <a href="#content-performance">Content</a>
+          <a href="#conversion-funnel">Funnel</a>
+          <a href="#monthly-insights">Insights</a>
+        </div>
+
         <section className="notice">
           <Globe size={18} />
 
@@ -687,6 +707,26 @@ function App() {
                 ? `GA4 connection error: ${error}`
                 : "Data source: live GA4 · Property 549643321"}
             </span>
+          </div>
+
+          <div className="notice-actions">
+            <small>
+              {lastUpdated
+                ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                : "Live data"}
+            </small>
+            <button
+              className="refresh-button"
+              onClick={() => {
+                setRefreshing(true);
+                setRefreshKey(value => value + 1);
+              }}
+              disabled={refreshing}
+              title="Refresh live data"
+            >
+              <RefreshCw size={14} className={refreshing ? "spin" : ""} />
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
           </div>
         </section>
 
@@ -1570,8 +1610,8 @@ function App() {
         </section>
 
         <footer>
-          Website Performance Hub <span>•</span> V6 · Live GA4 +
-          Search Console · Traffic intelligence active
+          Website Performance Hub <span>•</span> V7 · Live GA4 +
+          Search Console · Insights engine active
         </footer>
       </main>
     </div>
