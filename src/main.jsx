@@ -14,6 +14,16 @@ function formatNumber(value) {
   return new Intl.NumberFormat("en-US").format(value ?? 0);
 }
 
+function shortPageUrl(value) {
+  try {
+    const url = new URL(value);
+    const path = url.pathname === "/" ? "/" : url.pathname;
+    return path;
+  } catch {
+    return value;
+  }
+}
+
 function App() {
   const [site, setSite] = React.useState(sites[0]);
   const [data, setData] = React.useState(null);
@@ -73,6 +83,24 @@ function App() {
     return () => controller.abort();
   }, []);
 
+  const opportunities = [
+    ...pageRows
+      .filter(row => row.impressions >= 20 && row.clicks === 0)
+      .slice(0, 2)
+      .map(row => ({
+        title: "Page with search visibility but no clicks",
+        text: `${shortPageUrl(row.page)} has ${formatNumber(row.impressions)} impressions and 0 clicks (avg. position ${row.position.toFixed(1)}).`,
+        tone: "amber"
+      })),
+    ...(pageRows.some(row => row.page.includes("www.")) && pageRows.some(row => row.page.includes("drastritmucaj.com") && !row.page.includes("www."))
+      ? [{
+          title: "Check www / non-www consistency",
+          text: "Search Console is reporting both www and non-www versions. Check redirects and canonical URLs so Google receives one preferred version.",
+          tone: "blue"
+        }]
+      : [])
+  ].slice(0, 3);
+
   const cards = data ? [
     ["Users", formatNumber(data.users), Users],
     ["Sessions", formatNumber(data.sessions), MousePointerClick],
@@ -98,7 +126,7 @@ function App() {
       </nav>
 
       <div className="side-foot">
-        V1 • Live GA4<br/><span>Search Console coming next</span>
+        V1 • Live GA4 + GSC<br/><span>SEO intelligence active</span>
       </div>
     </aside>
 
@@ -212,7 +240,7 @@ function App() {
           <div className="data-table">
             {pageRows.length ? pageRows.slice(0, 5).map((row, i) =>
               <div className="data-row" key={i}>
-                <div><b>{row.page}</b><small>{formatNumber(row.impressions)} impressions · {formatNumber(row.clicks)} clicks</small></div>
+                <div><b>{shortPageUrl(row.page)}</b><small>{formatNumber(row.impressions)} impressions · {formatNumber(row.clicks)} clicks</small></div>
                 <strong>{row.position?.toFixed ? row.position.toFixed(1) : row.position}</strong>
               </div>
             ) : <div className="empty-state"><b>Top pages ready next</b><span>Search Console will show which pages Google is sending visitors to.</span></div>}
@@ -221,6 +249,17 @@ function App() {
       </div>
 
       <div className="two">
+        <section className="panel">
+          <div className="panel-head">
+            <div><h2><Lightbulb size={18}/> SEO opportunities</h2><p>Search visibility → practical action</p></div>
+          </div>
+          {opportunities.length ? opportunities.map((item, i) =>
+            <div className={`insight ${item.tone}`} key={i}>
+              <b>{item.title}</b><span>{item.text}</span><button>Review →</button>
+            </div>
+          ) : <div className="empty-state"><b>No opportunity flags yet</b><span>As Search Console accumulates more data, Performance Hub will surface pages and queries worth reviewing.</span></div>}
+        </section>
+
         <section className="panel">
           <div className="panel-head">
             <div><h2><Lightbulb size={18}/> This month's insights</h2><p>Data → interpretation → action</p></div>
@@ -239,7 +278,7 @@ function App() {
         </section>
       </div>
 
-      <footer>Website Performance Hub <span>•</span> V1 · Live GA4 + Search Console connected · SEO intelligence next</footer>
+      <footer>Website Performance Hub <span>•</span> V1 · Live GA4 + Search Console · SEO intelligence active</footer>
     </main>
   </div>;
 }
