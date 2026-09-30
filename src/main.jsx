@@ -246,7 +246,7 @@ function App() {
 
           <div className="funnel">
             <div><span><Search size={14}/> Google / Social</span><b>—</b></div>
-            <div><span><Eye size={14}/> Website visitors</span><b>{data ? formatNumber(isFilteredSite ? selectedPageUsers : data.users) : "—"}</b></div>
+            <div><span><Eye size={14}/> {isFilteredSite ? "Page visitors" : "Website visitors"}</span><b>{data ? formatNumber(isFilteredSite ? selectedPageUsers : data.users) : "—"}</b></div>
             <div><span><MessageCircle size={14}/> WhatsApp / contact</span><b>—</b></div>
             <div><span><CalendarCheck size={14}/> Consultations</span><b>—</b></div>
           </div>
