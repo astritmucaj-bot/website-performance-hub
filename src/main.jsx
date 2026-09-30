@@ -131,11 +131,20 @@ function App() {
       : [])
   ].slice(0, 3);
 
+  const selectedPageUsers = filteredPageRows.reduce((sum, row) => sum + Number(row.users || 0), 0);
+  const selectedPageSessions = filteredPageRows.reduce((sum, row) => sum + Number(row.sessions || 0), 0);
+  const selectedPageViews = filteredPageRows.reduce((sum, row) => sum + Number(row.pageViews || 0), 0);
+  const selectedEngagement = selectedPageViews
+    ? filteredPageRows.reduce((sum, row) => sum + (Number(row.engagementRate || 0) * Number(row.pageViews || 0)), 0) / selectedPageViews
+    : 0;
+
+  const isFilteredSite = site !== "All websites";
+
   const cards = data ? [
-    ["Users", formatNumber(data.users), Users],
-    ["Sessions", formatNumber(data.sessions), MousePointerClick],
-    ["Page views", formatNumber(data.pageViews), Eye],
-    ["Engagement", `${(data.engagementRate * 100).toFixed(1)}%`, TrendingUp],
+    ["Users", formatNumber(isFilteredSite ? selectedPageUsers : data.users), Users],
+    ["Sessions", formatNumber(isFilteredSite ? selectedPageSessions : data.sessions), MousePointerClick],
+    ["Page views", formatNumber(isFilteredSite ? selectedPageViews : data.pageViews), Eye],
+    ["Engagement", `${((isFilteredSite ? selectedEngagement : data.engagementRate) * 100).toFixed(1)}%`, TrendingUp],
   ] : [
     ["Users", "—", Users],
     ["Sessions", "—", MousePointerClick],
@@ -199,7 +208,7 @@ function App() {
             <div className="card-top"><span>{label}</span><Icon size={18}/></div>
             <strong>{value}</strong>
             <small className="positive">
-              {loading ? "Loading…" : error ? "Unavailable" : "Property total · last 30 days"}
+              {loading ? "Loading…" : error ? "Unavailable" : isFilteredSite ? "Selected site · page-level data · last 30 days" : "All tracked data · last 30 days"}
             </small>
           </div>
         )}
@@ -237,7 +246,7 @@ function App() {
 
           <div className="funnel">
             <div><span><Search size={14}/> Google / Social</span><b>—</b></div>
-            <div><span><Eye size={14}/> Website visitors</span><b>{data ? formatNumber(data.users) : "—"}</b></div>
+            <div><span><Eye size={14}/> Website visitors</span><b>{data ? formatNumber(isFilteredSite ? selectedPageUsers : data.users) : "—"}</b></div>
             <div><span><MessageCircle size={14}/> WhatsApp / contact</span><b>—</b></div>
             <div><span><CalendarCheck size={14}/> Consultations</span><b>—</b></div>
           </div>
