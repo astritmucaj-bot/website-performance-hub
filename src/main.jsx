@@ -440,6 +440,46 @@ function App() {
     )
     .slice(0, 3);
 
+  const funnelStages = [
+    {
+      key: "search",
+      label: "Google Search clicks",
+      value: searchData ? formatNumber(searchData.clicks) : "—",
+      detail: "Measured by Search Console · last 30 days",
+      status: searchData ? "live" : "loading"
+    },
+    {
+      key: "visitors",
+      label: "Website visitors",
+      value: data
+        ? formatNumber(isFilteredSite ? selectedPageUsers : data.users)
+        : "—",
+      detail: "Measured by GA4 · last 30 days",
+      status: data ? "live" : "loading"
+    },
+    {
+      key: "contact",
+      label: "WhatsApp / phone / contact",
+      value: "Not tracked",
+      detail: "Requires GA4 events: click_whatsapp, click_phone, contact_submit",
+      status: "setup"
+    },
+    {
+      key: "consultation",
+      label: "Consultations",
+      value: "Not tracked",
+      detail: "Requires appointment event or manual appointment input",
+      status: "setup"
+    },
+    {
+      key: "patient",
+      label: "Patients",
+      value: "Not tracked",
+      detail: "Requires confirmed-patient input or CRM integration",
+      status: "setup"
+    }
+  ];
+
   const cards = data
     ? [
         [
@@ -1065,66 +1105,36 @@ function App() {
             <div className="panel-head">
               <div>
                 <h2>Conversion funnel</h2>
-                <p>From discovery to consultation</p>
+                <p>Measured signals from discovery to consultation</p>
               </div>
               <TrendingUp size={20} />
             </div>
 
             <div className="funnel">
-              <div>
-                <span>
-                  <Search size={14} /> Google / Social
-                </span>
-                <b>—</b>
-              </div>
+              {funnelStages.map((stage, i) => (
+                <div key={stage.key}>
+                  <span>
+                    {i === 0 && <Search size={14} />}
+                    {i === 1 && <Eye size={14} />}
+                    {i === 2 && <MessageCircle size={14} />}
+                    {i === 3 && <CalendarCheck size={14} />}
+                    {i === 4 && <Users size={14} />}
+                    {stage.label}
+                  </span>
+                  <b>{stage.value}</b>
+                  <small style={{ display: "block", marginTop: 4, opacity: 0.7 }}>
+                    {stage.detail}
+                  </small>
+                </div>
+              ))}
+            </div>
 
-              <div>
-                <span>
-                  <Eye size={14} /> Website visitors
-                </span>
-                <b>
-                  {data
-                    ? formatNumber(
-                        isFilteredSite
-                          ? selectedPageUsers
-                          : data.users
-                      )
-                    : "—"}
-                </b>
-              </div>
-
-              <div>
-                <span>
-                  <Eye size={14} />{" "}
-                  {isFilteredSite
-                    ? "Page visitors"
-                    : "Website visitors"}
-                </span>
-
-                <b>
-                  {data
-                    ? formatNumber(
-                        isFilteredSite
-                          ? selectedPageUsers
-                          : data.users
-                      )
-                    : "—"}
-                </b>
-              </div>
-
-              <div>
-                <span>
-                  <MessageCircle size={14} /> WhatsApp / contact
-                </span>
-                <b>—</b>
-              </div>
-
-              <div>
-                <span>
-                  <CalendarCheck size={14} /> Consultations
-                </span>
-                <b>—</b>
-              </div>
+            <div className="chart empty-chart" style={{ marginTop: 14 }}>
+              <b>Tracking status</b>
+              <span>
+                V5 separates live measurements from signals that still need event tracking.
+                No contact, consultation or patient numbers are being invented.
+              </span>
             </div>
           </section>
         </div>
@@ -1281,6 +1291,47 @@ function App() {
             </div>
           </section>
         </div>
+
+        {/* V5 FUNNEL TRACKING */}
+        <section className="panel" id="funnel-tracking" style={{ marginTop: 18 }}>
+          <div className="panel-head">
+            <div>
+              <h2>
+                <MessageCircle size={18} /> Funnel tracking setup
+              </h2>
+              <p>Events Performance Hub will use to measure contact intent</p>
+            </div>
+            <CalendarCheck size={20} />
+          </div>
+
+          <div className="search-grid">
+            {[
+              ["click_whatsapp", "WhatsApp click", "Ready to connect"],
+              ["click_phone", "Phone click", "Ready to connect"],
+              ["contact_submit", "Contact / appointment form", "Ready to connect"],
+              ["consultation_confirmed", "Consultation confirmed", "Manual or CRM signal"],
+              ["patient_confirmed", "Patient confirmed", "Manual or CRM signal"]
+            ].map(([event, label, status]) => (
+              <div className="search-item" key={event}>
+                <span>{label}</span>
+                <b>{event}</b>
+                <small>{status}</small>
+              </div>
+            ))}
+          </div>
+
+          <div className="notice" style={{ marginTop: 14 }}>
+            <Lightbulb size={16} />
+            <div>
+              <b>Next technical step</b>
+              <span>
+                Add these GA4 events to the actual clinic websites, then expose their
+                counts through the Performance Hub API. Until that is connected, the
+                funnel intentionally shows “Not tracked” instead of fabricated numbers.
+              </span>
+            </div>
+          </div>
+        </section>
 
         {/* V4 CONTENT PERFORMANCE */}
         <section className="panel" id="content-performance" style={{ marginTop: 18 }}>
@@ -1459,7 +1510,7 @@ function App() {
         </section>
 
         <footer>
-          Website Performance Hub <span>•</span> V4 · Live GA4 +
+          Website Performance Hub <span>•</span> V5 · Live GA4 +
           Search Console · Traffic intelligence active
         </footer>
       </main>
