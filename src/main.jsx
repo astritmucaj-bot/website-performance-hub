@@ -336,6 +336,33 @@ function App() {
 
   const isFilteredSite = site !== "All websites";
 
+  const searchOpportunities = [
+    ...queryRows
+      .filter(row => Number(row.impressions || 0) >= 10 && Number(row.clicks || 0) === 0)
+      .slice(0, 1)
+      .map(row => ({
+        title: "Query with impressions but no clicks",
+        text: `“${row.query}” has ${formatNumber(row.impressions)} impressions but no clicks. Review the page title and search snippet.`,
+        tone: "amber"
+      })),
+    ...queryRows
+      .filter(row => Number(row.impressions || 0) >= 10 && Number(row.clicks || 0) > 0 && Number(row.ctr || 0) < 0.02)
+      .slice(0, 1)
+      .map(row => ({
+        title: "Query with low CTR",
+        text: `“${row.query}” generated ${formatNumber(row.impressions)} impressions and ${formatNumber(row.clicks)} clicks (CTR ${(Number(row.ctr || 0) * 100).toFixed(1)}%).`,
+        tone: "blue"
+      })),
+    ...pageRows
+      .filter(row => Number(row.impressions || 0) >= 10 && Number(row.clicks || 0) === 0)
+      .slice(0, 1)
+      .map(row => ({
+        title: "Page with search visibility but no clicks",
+        text: `${shortPageUrl(row.page)} has ${formatNumber(row.impressions)} impressions and 0 clicks (avg. position ${Number(row.position || 0).toFixed(1)}).`,
+        tone: "amber"
+      }))
+  ].slice(0, 3);
+
   const cards = data
     ? [
         [
@@ -538,7 +565,7 @@ function App() {
         </section>
 
         {/* V2 TRAFFIC */}
-        <section className="panel" style={{ marginTop: 24 }}>
+        <section className="panel" id="traffic-section" style={{ marginTop: 24 }}>
           <div className="panel-head">
             <div>
               <h2>
@@ -885,14 +912,14 @@ function App() {
         </section>
 
         <div className="two">
-          <section className="panel">
+          <section className="panel" id="google-search">
             <div className="panel-head">
               <div>
                 <h2>Google Search</h2>
                 <p>
                   {searchError
                     ? `Search Console error: ${searchError}`
-                    : "Live Google Search Console data"}
+                    : "Live Google Search Console data · sc-domain:drastritmucaj.com"}
                 </p>
               </div>
               <Search size={20} />
@@ -1038,21 +1065,17 @@ function App() {
 
             <div className="data-table">
               {queryRows.length ? (
-                queryRows.slice(0, 5).map((row, i) => (
+                queryRows.slice(0, 8).map((row, i) => (
                   <div className="data-row" key={i}>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <b>{row.query}</b>
                       <small>
                         {formatNumber(row.impressions)} impressions ·{" "}
                         {formatNumber(row.clicks)} clicks
                       </small>
                     </div>
-
-                    <strong>
-                      {row.position?.toFixed
-                        ? row.position.toFixed(1)
-                        : row.position}
-                    </strong>
+                    <strong>{(Number(row.ctr || 0) * 100).toFixed(1)}%</strong>
+                    <strong>{Number(row.position || 0).toFixed(1)}</strong>
                   </div>
                 ))
               ) : (
@@ -1078,21 +1101,17 @@ function App() {
 
             <div className="data-table">
               {pageRows.length ? (
-                pageRows.slice(0, 5).map((row, i) => (
+                pageRows.slice(0, 8).map((row, i) => (
                   <div className="data-row" key={i}>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <b>{shortPageUrl(row.page)}</b>
                       <small>
                         {formatNumber(row.impressions)} impressions ·{" "}
                         {formatNumber(row.clicks)} clicks
                       </small>
                     </div>
-
-                    <strong>
-                      {row.position?.toFixed
-                        ? row.position.toFixed(1)
-                        : row.position}
-                    </strong>
+                    <strong>{(Number(row.ctr || 0) * 100).toFixed(1)}%</strong>
+                    <strong>{Number(row.position || 0).toFixed(1)}</strong>
                   </div>
                 ))
               ) : (
@@ -1109,18 +1128,18 @@ function App() {
         </div>
 
         <div className="two">
-          <section className="panel">
+          <section className="panel" id="search-opportunities">
             <div className="panel-head">
               <div>
                 <h2>
-                  <Lightbulb size={18} /> SEO opportunities
+                  <Lightbulb size={18} /> Search opportunities
                 </h2>
                 <p>Search visibility → practical action</p>
               </div>
             </div>
 
-            {opportunities.length ? (
-              opportunities.map((item, i) => (
+            {searchOpportunities.length ? (
+              searchOpportunities.map((item, i) => (
                 <div
                   className={`insight ${item.tone}`}
                   key={i}
@@ -1132,10 +1151,10 @@ function App() {
               ))
             ) : (
               <div className="empty-state">
-                <b>No opportunity flags yet</b>
+                <b>No search opportunity flags yet</b>
                 <span>
                   As Search Console accumulates more data, Performance
-                  Hub will surface pages and queries worth reviewing.
+                  Hub will surface queries and pages worth reviewing.
                 </span>
               </div>
             )}
