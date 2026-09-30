@@ -24,6 +24,30 @@ function shortPageUrl(value) {
   }
 }
 
+function matchesSite(row, selectedSite) {
+  if (selectedSite === "All websites") return true;
+  if (selectedSite === "drastritmucaj.com") {
+    return row.hostname === "drastritmucaj.com" || row.hostname === "www.drastritmucaj.com";
+  }
+  return row.hostname === selectedSite;
+}
+
+function displayHost(hostname) {
+  if (hostname === "www.drastritmucaj.com" || hostname === "drastritmucaj.com") return "drastritmucaj.com";
+  if (hostname === "mushkeriteeshendetshme.lovable.app") return "mushkeriteeshendetshme.lovable.app";
+  if (hostname === "sites.google.com") return "Google Site";
+  if (hostname.includes("id-preview-")) return "Lovable preview";
+  return hostname;
+}
+
+function displayPage(row) {
+  if (row.hostname === "sites.google.com") {
+    return `Google Site${row.pagePath.replace("/view/drastritmucaj", "") || "/"}`;
+  }
+  if (row.hostname.includes("id-preview-")) return "Lovable preview";
+  return row.pagePath || "/";
+}
+
 function App() {
   const [site, setSite] = React.useState(sites[0]);
   const [data, setData] = React.useState(null);
@@ -83,6 +107,12 @@ function App() {
     return () => controller.abort();
   }, []);
 
+  const allPageRows = data?.pages || [];
+  const filteredPageRows = allPageRows.filter(row => matchesSite(row, site));
+  const topPageRows = filteredPageRows
+    .filter(row => !row.pagePath.includes("assets/") && row.pagePath !== "/sitemap.xml")
+    .slice(0, 8);
+
   const opportunities = [
     ...pageRows
       .filter(row => row.impressions >= 20 && row.clicks === 0)
@@ -140,9 +170,7 @@ function App() {
 
         <div className="controls">
           <select value={site} onChange={e => setSite(e.target.value)}>
-            <option>All websites</option>
-            <option disabled>drastritmucaj.com · site filter coming next</option>
-            <option disabled>mushkeriteeshendetshme.lovable.app · site filter coming next</option>
+            {sites.map(option => <option key={option}>{option}</option>)}
           </select>
           <button>Last 30 days ▾</button>
         </div>
@@ -171,7 +199,7 @@ function App() {
             <div className="card-top"><span>{label}</span><Icon size={18}/></div>
             <strong>{value}</strong>
             <small className="positive">
-              {loading ? "Loading…" : error ? "Unavailable" : "Last 30 days · live"}
+              {loading ? "Loading…" : error ? "Unavailable" : "Property total · last 30 days"}
             </small>
           </div>
         )}
@@ -270,13 +298,24 @@ function App() {
           <div className="insight blue"><b>Future funnel</b><span>We'll connect website visits to WhatsApp/contact and consultation data when those signals are available.</span><button>Build funnel →</button></div>
         </section>
 
-        <section className="panel">
-          <div className="panel-head"><div><h2>Top content</h2><p>Will be populated from GA4 page data next</p></div></div>
-          <div className="content-row"><span className="rank">1</span><div><b>Page-level analytics</b><small>Coming next</small></div><ArrowUpRight size={16}/></div>
-          <div className="content-row"><span className="rank">2</span><div><b>Traffic sources</b><small>Coming next</small></div><ArrowUpRight size={16}/></div>
-          <div className="content-row"><span className="rank">3</span><div><b>Countries & devices</b><small>Coming next</small></div><ArrowUpRight size={16}/></div>
-        </section>
-      </div>
+      <section className="panel">
+        <div className="panel-head">
+          <div><h2>Page performance</h2><p>{site === "All websites" ? "Top pages across all tracked hosts" : `Top pages for ${site}`}</p></div>
+          <ArrowUpRight size={20}/>
+        </div>
+        <div className="data-table">
+          {topPageRows.length ? topPageRows.map((row, i) =>
+            <div className="data-row" key={`${row.hostname}-${row.pagePath}`}>
+              <div>
+                <b>{displayPage(row)}</b>
+                <small>{displayHost(row.hostname)} · {formatNumber(row.users)} users · {formatNumber(row.sessions)} sessions</small>
+              </div>
+              <strong>{formatNumber(row.pageViews)} views</strong>
+              <strong>{(row.engagementRate * 100).toFixed(0)}%</strong>
+            </div>
+          ) : <div className="empty-state"><b>Page data is loading</b><span>GA4 page-level data will appear here when available.</span></div>}
+        </div>
+      </section>
 
       <footer>Website Performance Hub <span>•</span> V1 · Live GA4 + Search Console · SEO intelligence active</footer>
     </main>
