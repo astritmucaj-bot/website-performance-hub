@@ -480,6 +480,51 @@ function App() {
     }
   ];
 
+  const insightItems = [
+    ...(searchOpportunities || []).map(item => ({
+      category: "SEO",
+      title: item.title,
+      text: item.text,
+      action: "Review search data →",
+      tone: item.tone || "amber"
+    })),
+    ...((contentOpportunities || []).map(row => ({
+      category: "Content",
+      title: `Low CTR: ${row.label}`,
+      text: `${formatNumber(row.impressions)} impressions, ${formatNumber(row.clicks)} clicks and ${(Number(row.ctr || 0) * 100).toFixed(1)}% CTR.`,
+      action: "Review content →",
+      tone: "blue"
+    }))),
+    ...(trafficData?.sources || [])
+      .filter(row => Number(row.sessions || 0) > 0)
+      .sort((a, b) => Number(b.sessions || 0) - Number(a.sessions || 0))
+      .slice(0, 1)
+      .map(row => ({
+        category: "Traffic",
+        title: `Top acquisition channel: ${row.channel}`,
+        text: `${formatNumber(row.sessions)} sessions with ${formatPercent(row.engagementRate)} engagement in the selected period.`,
+        action: "View traffic →",
+        tone: "green"
+      })),
+    ...(highTrafficContent || [])
+      .filter(row => Number(row.pageViews || 0) > 0)
+      .slice(0, 1)
+      .map(row => ({
+        category: "Content",
+        title: `High-traffic page: ${row.label}`,
+        text: `${formatNumber(row.pageViews)} page views from ${formatNumber(row.users)} users.`,
+        action: "View content →",
+        tone: "green"
+      }))
+  ].slice(0, 6);
+
+  const insightSummary = {
+    total: insightItems.length,
+    seo: insightItems.filter(item => item.category === "SEO").length,
+    content: insightItems.filter(item => item.category === "Content").length,
+    traffic: insightItems.filter(item => item.category === "Traffic").length
+  };
+
   const cards = data
     ? [
         [
@@ -589,9 +634,9 @@ function App() {
         </nav>
 
         <div className="side-foot">
-          V2 • Live GA4 + GSC
+          V6 • Live GA4 + GSC
           <br />
-          <span>Traffic intelligence active</span>
+          <span>Insights engine active</span>
         </div>
       </aside>
 
@@ -1254,40 +1299,55 @@ function App() {
                 <h2>
                   <Lightbulb size={18} /> This month's insights
                 </h2>
-                <p>Data → interpretation → action</p>
+                <p>Automatic rules: data → interpretation → action</p>
+              </div>
+              <Lightbulb size={20} />
+            </div>
+
+            <div className="search-grid">
+              <div className="search-item">
+                <span>Insights</span>
+                <b>{insightSummary.total}</b>
+                <small>Generated from current live data</small>
+              </div>
+              <div className="search-item">
+                <span>SEO</span>
+                <b>{insightSummary.seo}</b>
+                <small>Search Console signals</small>
+              </div>
+              <div className="search-item">
+                <span>Content</span>
+                <b>{insightSummary.content}</b>
+                <small>Page performance signals</small>
+              </div>
+              <div className="search-item">
+                <span>Traffic</span>
+                <b>{insightSummary.traffic}</b>
+                <small>GA4 traffic signals</small>
               </div>
             </div>
 
-            <div className="insight green">
-              <b>GA4 connected</b>
-              <span>
-                Live website activity is now flowing into Performance
-                Hub.
-              </span>
-              <button>View live traffic →</button>
-            </div>
-
-            <div className="insight amber">
-              <b>Search visibility</b>
-              <span>
-                {searchData
-                  ? `${formatNumber(
-                      searchData.impressions
-                    )} Google impressions and ${formatNumber(
-                      searchData.clicks
-                    )} clicks in the last 30 days.`
-                  : "Search Console data is loading."}
-              </span>
-              <button>View search data →</button>
-            </div>
-
-            <div className="insight blue">
-              <b>Future funnel</b>
-              <span>
-                We'll connect website visits to WhatsApp/contact and
-                consultation data when those signals are available.
-              </span>
-              <button>Build funnel →</button>
+            <div style={{ marginTop: 16 }}>
+              {insightItems.length ? (
+                insightItems.map((item, i) => (
+                  <div className={`insight ${item.tone}`} key={i}>
+                    <small style={{ display: "block", marginBottom: 4, opacity: 0.7 }}>
+                      {item.category}
+                    </small>
+                    <b>{item.title}</b>
+                    <span>{item.text}</span>
+                    <button>{item.action}</button>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state">
+                  <b>No actionable signals yet</b>
+                  <span>
+                    As GA4 and Search Console collect more data, Performance Hub
+                    will surface concrete items to review.
+                  </span>
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -1510,7 +1570,7 @@ function App() {
         </section>
 
         <footer>
-          Website Performance Hub <span>•</span> V5 · Live GA4 +
+          Website Performance Hub <span>•</span> V6 · Live GA4 +
           Search Console · Traffic intelligence active
         </footer>
       </main>
