@@ -7,6 +7,7 @@ import {
 import "./styles.css";
 
 const API_URL = "https://website-performance-hub-api.astritmucaj.workers.dev/api/ga4";
+const SEARCH_API_URL = "https://website-performance-hub-api.astritmucaj.workers.dev/api/search-console";
 const sites = ["All websites", "drastritmucaj.com", "mushkeriteeshendetshme.lovable.app"];
 
 function formatNumber(value) {
@@ -18,6 +19,8 @@ function App() {
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [searchData, setSearchData] = React.useState(null);
+  const [searchError, setSearchError] = React.useState("");
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -43,7 +46,26 @@ function App() {
       }
     }
 
+    async function loadSearchConsole() {
+      setSearchError("");
+
+      try {
+        const response = await fetch(SEARCH_API_URL, { signal: controller.signal });
+        if (!response.ok) throw new Error(`API returned ${response.status}`);
+
+        const result = await response.json();
+        if (!result.ok) throw new Error(result.message || "Search Console request failed");
+
+        setSearchData(result);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          setSearchError(err.message || "Unable to load Search Console data");
+        }
+      }
+    }
+
     loadGA4();
+    loadSearchConsole();
     return () => controller.abort();
   }, []);
 
@@ -126,24 +148,24 @@ function App() {
       <div className="two">
         <section className="panel">
           <div className="panel-head">
-            <div><h2>Google Search</h2><p>Search Console integration is next</p></div>
+            <div><h2>Google Search</h2><p>{searchError ? `Search Console error: ${searchError}` : "Live Google Search Console data"}</p></div>
             <Search size={20}/>
           </div>
 
           <div className="search-grid">
             {[
-              ["Google clicks", "—"], ["Impressions", "—"],
-              ["CTR", "—"], ["Avg. position", "—"]
+              ["Google clicks", searchData ? formatNumber(searchData.clicks) : "—"], ["Impressions", searchData ? formatNumber(searchData.impressions) : "—"],
+              ["CTR", searchData ? `${(searchData.ctr * 100).toFixed(1)}%` : "—"], ["Avg. position", searchData ? searchData.position.toFixed(1) : "—"]
             ].map(([label, value]) =>
               <div className="search-item" key={label}>
-                <span>{label}</span><b>{value}</b><small>Coming next</small>
+                <span>{label}</span><b>{value}</b><small>{searchData ? "Last 30 days · live" : searchError ? "Unavailable" : "Loading…"}</small>
               </div>
             )}
           </div>
 
           <div className="chart empty-chart">
-            <b>Search Console data will appear here</b>
-            <span>Clicks, impressions, CTR and position by day.</span>
+            <b>{searchData ? "Search Console connected" : searchError ? "Search Console needs attention" : "Loading Search Console data…"}</b>
+            <span>{searchData ? "Clicks, impressions, CTR and average position · last 30 days." : "Connecting to live Search Console data."}</span>
           </div>
         </section>
 
@@ -169,7 +191,7 @@ function App() {
           </div>
 
           <div className="insight green"><b>GA4 connected</b><span>Live website activity is now flowing into Performance Hub.</span><button>View live traffic →</button></div>
-          <div className="insight amber"><b>Next integration</b><span>Connect Search Console to turn search impressions and clicks into actionable SEO insights.</span><button>Coming next →</button></div>
+          <div className="insight amber"><b>Search Console connected</b><span>{searchData ? `${formatNumber(searchData.impressions)} Google impressions and ${formatNumber(searchData.clicks)} clicks in the last 30 days.` : "Search Console data is loading."}</span><button>View search data →</button></div>
           <div className="insight blue"><b>Future funnel</b><span>We'll connect website visits to WhatsApp/contact and consultation data when those signals are available.</span><button>Build funnel →</button></div>
         </section>
 
@@ -181,7 +203,7 @@ function App() {
         </section>
       </div>
 
-      <footer>Website Performance Hub <span>•</span> V1 · Live GA4 connected · Search Console next</footer>
+      <footer>Website Performance Hub <span>•</span> V1 · Live GA4 + Search Console connected</footer>
     </main>
   </div>;
 }
