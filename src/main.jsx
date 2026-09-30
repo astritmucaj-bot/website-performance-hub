@@ -1,4 +1,5 @@
 import React from "react";
+import { createRoot } from "react-dom/client";
 import {
   Globe, Search, MousePointerClick, Users, Eye, MessageCircle,
   CalendarCheck, TrendingUp, ArrowUpRight, Lightbulb, Loader2
