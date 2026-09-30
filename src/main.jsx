@@ -79,6 +79,27 @@ function displayPage(row) {
   return row.pagePath || "/";
 }
 
+function normalizeContentPath(value) {
+  if (!value) return "/";
+  try {
+    const url = value.startsWith("http") ? new URL(value) : null;
+    const path = url ? url.pathname : value.split("?")[0].split("#")[0];
+    return path || "/";
+  } catch {
+    return value.split("?")[0].split("#")[0] || "/";
+  }
+}
+
+function contentLabel(path) {
+  if (!path || path === "/") return "Homepage";
+  const clean = path.replace(/^\/+|\/+$/g, "");
+  return clean
+    .split("/")
+    .filter(Boolean)
+    .map(part => part.replace(/[-_]+/g, " "))
+    .join(" / ");
+}
+
 function trafficSiteParam(selectedSite) {
   if (selectedSite === "All websites") return "all";
   return selectedSite;
@@ -363,6 +384,62 @@ function App() {
       }))
   ].slice(0, 3);
 
+  const contentRows = React.useMemo(() => {
+    const gaRows = filteredPageRows
+      .filter(row =>
+        !row.pagePath.includes("assets/") &&
+        row.pagePath !== "/sitemap.xml"
+      )
+      .map(row => ({
+        path: normalizeContentPath(row.pagePath),
+        label: contentLabel(row.pagePath),
+        users: Number(row.users || 0),
+        sessions: Number(row.sessions || 0),
+        pageViews: Number(row.pageViews || 0),
+        engagementRate: Number(row.engagementRate || 0)
+      }));
+
+    const gscMap = new Map();
+    pageRows.forEach(row => {
+      const path = normalizeContentPath(row.page);
+      gscMap.set(path, {
+        impressions: Number(row.impressions || 0),
+        clicks: Number(row.clicks || 0),
+        ctr: Number(row.ctr || 0),
+        position: Number(row.position || 0)
+      });
+    });
+
+    return gaRows
+      .map(row => ({
+        ...row,
+        ...(gscMap.get(row.path) || {
+          impressions: 0,
+          clicks: 0,
+          ctr: 0,
+          position: 0
+        })
+      }))
+      .sort((a, b) => b.pageViews - a.pageViews);
+  }, [filteredPageRows, pageRows]);
+
+  const contentSearchRows = [...pageRows]
+    .map(row => ({
+      ...row,
+      path: normalizeContentPath(row.page),
+      label: contentLabel(normalizeContentPath(row.page))
+    }))
+    .sort((a, b) => Number(b.impressions || 0) - Number(a.impressions || 0));
+
+  const highTrafficContent = contentRows.slice(0, 4);
+  const searchVisibilityContent = contentSearchRows.slice(0, 4);
+  const contentOpportunities = contentSearchRows
+    .filter(row =>
+      Number(row.impressions || 0) >= 10 &&
+      Number(row.ctr || 0) < 0.02
+    )
+    .slice(0, 3);
+
   const cards = data
     ? [
         [
@@ -462,13 +539,13 @@ function App() {
         </div>
 
         <nav>
-          <a className="active">Overview</a>
-          <a>Traffic</a>
-          <a>Google Search</a>
-          <a>SEO</a>
-          <a>Content</a>
-          <a>Funnel</a>
-          <a>Insights</a>
+          <a className="active" href="#overview">Overview</a>
+          <a href="#traffic-section">Traffic</a>
+          <a href="#google-search">Google Search</a>
+          <a href="#search-opportunities">SEO</a>
+          <a href="#content-performance">Content</a>
+          <a href="#conversion-funnel">Funnel</a>
+          <a href="#monthly-insights">Insights</a>
         </nav>
 
         <div className="side-foot">
@@ -479,6 +556,7 @@ function App() {
       </aside>
 
       <main>
+        <div id="overview"></div>
         <header>
           <div>
             <p className="eyebrow">WEBSITE PERFORMANCE</p>
@@ -983,7 +1061,7 @@ function App() {
             </div>
           </section>
 
-          <section className="panel">
+          <section className="panel" id="conversion-funnel">
             <div className="panel-head">
               <div>
                 <h2>Conversion funnel</h2>
@@ -1160,7 +1238,7 @@ function App() {
             )}
           </section>
 
-          <section className="panel">
+          <section className="panel" id="monthly-insights">
             <div className="panel-head">
               <div>
                 <h2>
@@ -1203,6 +1281,133 @@ function App() {
             </div>
           </section>
         </div>
+
+        {/* V4 CONTENT PERFORMANCE */}
+        <section className="panel" id="content-performance" style={{ marginTop: 18 }}>
+          <div className="panel-head">
+            <div>
+              <h2>
+                <BarChart3 size={18} /> Content performance
+              </h2>
+              <p>
+                Which pages attract visitors, engage them and appear in Google Search
+              </p>
+            </div>
+            <ArrowUpRight size={20} />
+          </div>
+
+          {site === "mushkeriteeshendetshme.lovable.app" && (
+            <div className="notice" style={{ marginTop: 12 }}>
+              <Search size={16} />
+              <div>
+                <b>Google Search data</b>
+                <span>
+                  Search Console is currently connected to drastritmucaj.com only.
+                  Traffic and engagement below are still live for the selected site.
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="two" style={{ marginTop: 18 }}>
+            <section className="panel">
+              <div className="panel-head">
+                <div>
+                  <h2>High-traffic content</h2>
+                  <p>Pages with the most GA4 page views</p>
+                </div>
+                <Eye size={19} />
+              </div>
+
+              <div className="data-table">
+                {highTrafficContent.length ? (
+                  highTrafficContent.map((row, i) => (
+                    <div className="data-row" key={row.path + i}>
+                      <div style={{ flex: 1 }}>
+                        <b>{row.label}</b>
+                        <small>
+                          {formatNumber(row.users)} users · {formatNumber(row.pageViews)} views
+                        </small>
+                      </div>
+                      <strong>{(row.engagementRate * 100).toFixed(0)}%</strong>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <b>No content data yet</b>
+                    <span>GA4 page-level data will appear here.</span>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="panel">
+              <div className="panel-head">
+                <div>
+                  <h2>Search visibility</h2>
+                  <p>Pages receiving impressions from Google</p>
+                </div>
+                <Search size={19} />
+              </div>
+
+              <div className="data-table">
+                {searchVisibilityContent.length ? (
+                  searchVisibilityContent.map((row, i) => (
+                    <div className="data-row" key={row.path + i}>
+                      <div style={{ flex: 1 }}>
+                        <b>{row.label}</b>
+                        <small>
+                          {formatNumber(row.impressions)} impressions · {formatNumber(row.clicks)} clicks
+                        </small>
+                      </div>
+                      <strong>{(Number(row.ctr || 0) * 100).toFixed(1)}%</strong>
+                      <strong>{Number(row.position || 0).toFixed(1)}</strong>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <b>No Search Console page data</b>
+                    <span>Search visibility will appear when GSC data is available.</span>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+
+          <section className="panel" style={{ marginTop: 18 }}>
+            <div className="panel-head">
+              <div>
+                <h2>Content → Search opportunities</h2>
+                <p>Pages where search visibility and click-through can be improved</p>
+              </div>
+              <Lightbulb size={19} />
+            </div>
+
+            {contentOpportunities.length ? (
+              <div className="data-table">
+                {contentOpportunities.map((row, i) => (
+                  <div className="data-row" key={row.path + i}>
+                    <div style={{ flex: 1 }}>
+                      <b>{row.label}</b>
+                      <small>
+                        {formatNumber(row.impressions)} impressions · {formatNumber(row.clicks)} clicks · avg. position {Number(row.position || 0).toFixed(1)}
+                      </small>
+                    </div>
+                    <strong>{(Number(row.ctr || 0) * 100).toFixed(1)}% CTR</strong>
+                    <button>Review →</button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <b>No content opportunity flags yet</b>
+                <span>
+                  Performance Hub will surface pages with meaningful search visibility and low click-through.
+                </span>
+              </div>
+            )}
+          </section>
+        </section>
 
         <section className="panel">
           <div className="panel-head">
@@ -1254,7 +1459,7 @@ function App() {
         </section>
 
         <footer>
-          Website Performance Hub <span>•</span> V2 · Live GA4 +
+          Website Performance Hub <span>•</span> V4 · Live GA4 +
           Search Console · Traffic intelligence active
         </footer>
       </main>
