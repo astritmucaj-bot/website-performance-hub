@@ -21,6 +21,8 @@ function App() {
   const [error, setError] = React.useState("");
   const [searchData, setSearchData] = React.useState(null);
   const [searchError, setSearchError] = React.useState("");
+  const [queryRows, setQueryRows] = React.useState([]);
+  const [pageRows, setPageRows] = React.useState([]);
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -57,6 +59,8 @@ function App() {
         if (!result.ok) throw new Error(result.message || "Search Console request failed");
 
         setSearchData(result);
+        setQueryRows(result.queries || []);
+        setPageRows(result.pages || []);
       } catch (err) {
         if (err.name !== "AbortError") {
           setSearchError(err.message || "Unable to load Search Console data");
@@ -187,11 +191,43 @@ function App() {
       <div className="two">
         <section className="panel">
           <div className="panel-head">
+            <div><h2>Top Google queries</h2><p>What people searched before finding your site</p></div>
+            <Search size={20}/>
+          </div>
+          <div className="data-table">
+            {queryRows.length ? queryRows.slice(0, 5).map((row, i) =>
+              <div className="data-row" key={i}>
+                <div><b>{row.query}</b><small>{formatNumber(row.impressions)} impressions · {formatNumber(row.clicks)} clicks</small></div>
+                <strong>{row.position?.toFixed ? row.position.toFixed(1) : row.position}</strong>
+              </div>
+            ) : <div className="empty-state"><b>Top queries ready next</b><span>Search Console will show the queries bringing people to your site.</span></div>}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <div><h2>Top landing pages</h2><p>Pages receiving Google Search traffic</p></div>
+            <ArrowUpRight size={20}/>
+          </div>
+          <div className="data-table">
+            {pageRows.length ? pageRows.slice(0, 5).map((row, i) =>
+              <div className="data-row" key={i}>
+                <div><b>{row.page}</b><small>{formatNumber(row.impressions)} impressions · {formatNumber(row.clicks)} clicks</small></div>
+                <strong>{row.position?.toFixed ? row.position.toFixed(1) : row.position}</strong>
+              </div>
+            ) : <div className="empty-state"><b>Top pages ready next</b><span>Search Console will show which pages Google is sending visitors to.</span></div>}
+          </div>
+        </section>
+      </div>
+
+      <div className="two">
+        <section className="panel">
+          <div className="panel-head">
             <div><h2><Lightbulb size={18}/> This month's insights</h2><p>Data → interpretation → action</p></div>
           </div>
 
           <div className="insight green"><b>GA4 connected</b><span>Live website activity is now flowing into Performance Hub.</span><button>View live traffic →</button></div>
-          <div className="insight amber"><b>Search Console connected</b><span>{searchData ? `${formatNumber(searchData.impressions)} Google impressions and ${formatNumber(searchData.clicks)} clicks in the last 30 days.` : "Search Console data is loading."}</span><button>View search data →</button></div>
+          <div className="insight amber"><b>Search visibility</b><span>{searchData ? `${formatNumber(searchData.impressions)} Google impressions and ${formatNumber(searchData.clicks)} clicks in the last 30 days.` : "Search Console data is loading."}</span><button>View search data →</button></div>
           <div className="insight blue"><b>Future funnel</b><span>We'll connect website visits to WhatsApp/contact and consultation data when those signals are available.</span><button>Build funnel →</button></div>
         </section>
 
@@ -203,7 +239,7 @@ function App() {
         </section>
       </div>
 
-      <footer>Website Performance Hub <span>•</span> V1 · Live GA4 + Search Console connected</footer>
+      <footer>Website Performance Hub <span>•</span> V1 · Live GA4 + Search Console connected · SEO intelligence next</footer>
     </main>
   </div>;
 }
