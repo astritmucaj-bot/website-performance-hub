@@ -297,6 +297,7 @@ function App() {
           <div className="insight amber"><b>Search visibility</b><span>{searchData ? `${formatNumber(searchData.impressions)} Google impressions and ${formatNumber(searchData.clicks)} clicks in the last 30 days.` : "Search Console data is loading."}</span><button>View search data →</button></div>
           <div className="insight blue"><b>Future funnel</b><span>We'll connect website visits to WhatsApp/contact and consultation data when those signals are available.</span><button>Build funnel →</button></div>
         </section>
+      </div>
 
       <section className="panel">
         <div className="panel-head">
