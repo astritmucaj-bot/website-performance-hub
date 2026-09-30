@@ -14,6 +14,7 @@ const TRAFFIC_API_URL = "https://website-performance-hub-api.astritmucaj.workers
 const sites = [
   "All websites",
   "drastritmucaj.com",
+  "Google Site",
   "mushkeriteeshendetshme.lovable.app"
 ];
 
@@ -102,6 +103,7 @@ function contentLabel(path) {
 
 function trafficSiteParam(selectedSite) {
   if (selectedSite === "All websites") return "all";
+  if (selectedSite === "Google Site") return "google-site";
   return selectedSite;
 }
 
@@ -246,6 +248,19 @@ function App() {
       setTrafficError("");
 
       try {
+        if (site === "Google Site") {
+          setTrafficData({
+            ok: true,
+            googleSite: true,
+            trend: [],
+            sources: [],
+            countries: [],
+            devices: []
+          });
+          setTrafficLoading(false);
+          return;
+        }
+
         const selectedApiSite = trafficSiteParam(site);
 
         const response = await fetch(
@@ -593,27 +608,26 @@ function App() {
     1
   );
 
-  const totalTrafficUsers = trend.reduce(
-    (sum, item) => sum + Number(item.users || 0),
-    0
-  );
+  const totalTrafficUsers = site === "Google Site"
+    ? selectedPageUsers
+    : trend.reduce((sum, item) => sum + Number(item.users || 0), 0);
 
-  const totalTrafficSessions = trend.reduce(
-    (sum, item) => sum + Number(item.sessions || 0),
-    0
-  );
+  const totalTrafficSessions = site === "Google Site"
+    ? selectedPageSessions
+    : trend.reduce((sum, item) => sum + Number(item.sessions || 0), 0);
 
-  const totalTrafficPageviews = trend.reduce(
-    (sum, item) => sum + Number(item.pageviews || 0),
-    0
-  );
+  const totalTrafficPageviews = site === "Google Site"
+    ? selectedPageViews
+    : trend.reduce((sum, item) => sum + Number(item.pageviews || 0), 0);
 
   const weightedEngagementDenominator = trend.reduce(
     (sum, item) => sum + Number(item.sessions || 0),
     0
   );
 
-  const weightedEngagement = weightedEngagementDenominator
+  const weightedEngagement = site === "Google Site"
+    ? selectedEngagement
+    : weightedEngagementDenominator
     ? trend.reduce(
         (sum, item) =>
           sum +
@@ -782,6 +796,19 @@ function App() {
 
             <TrendingUp size={20} />
           </div>
+
+          {site === "Google Site" && (
+            <div className="notice" style={{ marginTop: 12 }}>
+              <Globe size={16} />
+              <div>
+                <b>Google Site selected</b>
+                <span>
+                  Page-level GA4 data is included here. The current traffic endpoint does not yet isolate
+                  Google Site by hostname for sources, countries and daily trend, so those breakdowns are not fabricated.
+                </span>
+              </div>
+            </div>
+          )}
 
           {trafficLoading && (
             <div className="loading">
@@ -1610,7 +1637,7 @@ function App() {
         </section>
 
         <footer>
-          Website Performance Hub <span>•</span> V7 · Live GA4 +
+          Website Performance Hub <span>•</span> V7.1 · Live GA4 +
           Search Console · Insights engine active
         </footer>
       </main>
