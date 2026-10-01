@@ -37,13 +37,22 @@ function shortPageUrl(value) {
 }
 
 function matchesSite(row, selectedSite) {
+  if (!row) return false;
   if (selectedSite === "All websites") return true;
+
+  if (selectedSite === "Google Site") {
+    return row.hostname === "sites.google.com";
+  }
 
   if (selectedSite === "drastritmucaj.com") {
     return (
       row.hostname === "drastritmucaj.com" ||
       row.hostname === "www.drastritmucaj.com"
     );
+  }
+
+  if (selectedSite === "mushkeriteeshendetshme.lovable.app") {
+    return row.hostname === "mushkeriteeshendetshme.lovable.app";
   }
 
   return row.hostname === selectedSite;
@@ -103,7 +112,7 @@ function contentLabel(path) {
 
 function trafficSiteParam(selectedSite) {
   if (selectedSite === "All websites") return "all";
-  if (selectedSite === "Google Site") return "google-site";
+  if (selectedSite === "Google Site") return "sites.google.com";
   return selectedSite;
 }
 
@@ -248,19 +257,6 @@ function App() {
       setTrafficError("");
 
       try {
-        if (site === "Google Site") {
-          setTrafficData({
-            ok: true,
-            googleSite: true,
-            trend: [],
-            sources: [],
-            countries: [],
-            devices: []
-          });
-          setTrafficLoading(false);
-          return;
-        }
-
         const selectedApiSite = trafficSiteParam(site);
 
         const response = await fetch(
@@ -1151,6 +1147,11 @@ function App() {
                     ? `Search Console error: ${searchError}`
                     : "Live Google Search Console data · sc-domain:drastritmucaj.com"}
                 </p>
+                {site === "Google Site" && (
+                  <span className="search-console-note">
+                    Data shown here belongs to drastritmucaj.com, not the Google Site.
+                  </span>
+                )}
               </div>
               <Search size={20} />
             </div>
