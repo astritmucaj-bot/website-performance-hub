@@ -10,6 +10,7 @@ import "./styles.css";
 const API_URL = "https://website-performance-hub-api.astritmucaj.workers.dev/api/ga4";
 const SEARCH_API_URL = "https://website-performance-hub-api.astritmucaj.workers.dev/api/search-console";
 const TRAFFIC_API_URL = "https://website-performance-hub-api.astritmucaj.workers.dev/api/traffic";
+const CLOUDFLARE_API_URL = "https://website-performance-hub-api.astritmucaj.workers.dev/api/cloudflare";
 
 const sites = [
   "All websites",
@@ -173,6 +174,10 @@ function App() {
   const [trafficData, setTrafficData] = React.useState(null);
   const [trafficLoading, setTrafficLoading] = React.useState(true);
   const [trafficError, setTrafficError] = React.useState("");
+
+  const [cloudflareData, setCloudflareData] = React.useState(null);
+  const [cloudflareLoading, setCloudflareLoading] = React.useState(true);
+  const [cloudflareError, setCloudflareError] = React.useState("");
   const [refreshKey, setRefreshKey] = React.useState(0);
   const [refreshing, setRefreshing] = React.useState(false);
   const [lastUpdated, setLastUpdated] = React.useState(null);
@@ -296,6 +301,61 @@ function App() {
     }
 
     loadTraffic();
+
+    return () => controller.abort();
+  }, [site, trafficDays, refreshKey]);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadCloudflare() {
+      const supportsCloudflare =
+        site === "All websites" || site === "drastritmucaj.com";
+
+      if (!supportsCloudflare) {
+        setCloudflareData(null);
+        setCloudflareLoading(false);
+        setCloudflareError("");
+        return;
+      }
+
+      setCloudflareLoading(true);
+      setCloudflareError("");
+
+      try {
+        const response = await fetch(
+          `${CLOUDFLARE_API_URL}?days=${Math.min(trafficDays, 30)}`,
+          { signal: controller.signal }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Cloudflare API returned ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.ok) {
+          throw new Error(
+            result.message || "Cloudflare Analytics request failed"
+          );
+        }
+
+        setCloudflareData(result);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          setCloudflareError(
+            err.message || "Unable to load Cloudflare Analytics"
+          );
+          setCloudflareData(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setCloudflareLoading(false);
+        }
+      }
+    }
+
+    loadCloudflare();
 
     return () => controller.abort();
   }, [site, trafficDays, refreshKey]);
@@ -592,6 +652,24 @@ function App() {
   const countries = trafficData?.countries || [];
   const devices = trafficData?.devices || [];
 
+  const cloudflareTrend = cloudflareData?.trend || [];
+  const cloudflareCountries = cloudflareData?.countries || [];
+  const cloudflarePages = cloudflareData?.pages || [];
+
+  const formatBytes = bytes => {
+    const value = Number(bytes || 0);
+    if (value < 1024) return `${value.toFixed(0)} B`;
+    if (value < 1024 ** 2) return `${(value / 1024).toFixed(1)} KB`;
+    if (value < 1024 ** 3) return `${(value / 1024 ** 2).toFixed(1)} MB`;
+    if (value < 1024 ** 4) return `${(value / 1024 ** 3).toFixed(2)} GB`;
+    return `${(value / 1024 ** 4).toFixed(2)} TB`;
+  };
+
+  const maxCloudflareVisits = Math.max(
+    ...cloudflareTrend.map(item => Number(item.visits || 0)),
+    1
+  );
+
   const trendPoints = getTrendPoints(trend);
 
   const maxSourceSessions = Math.max(
@@ -647,6 +725,7 @@ function App() {
         <nav>
           <a className="active" href="#overview">Overview</a>
           <a href="#traffic-section">Traffic</a>
+          <a href="#cloudflare-analytics">Cloudflare</a>
           <a href="#google-search">Google Search</a>
           <a href="#search-opportunities">SEO</a>
           <a href="#content-performance">Content</a>
@@ -699,6 +778,7 @@ function App() {
         <div className="mobile-nav">
           <a href="#overview">Overview</a>
           <a href="#traffic-section">Traffic</a>
+          <a href="#cloudflare-analytics">Cloudflare</a>
           <a href="#google-search">Search</a>
           <a href="#content-performance">Content</a>
           <a href="#conversion-funnel">Funnel</a>
@@ -1419,6 +1499,149 @@ function App() {
             </div>
           </section>
         </div>
+
+        {/* CLOUDFLARE ANALYTICS */}
+        <section className="panel" id="cloudflare-analytics" style={{ marginTop: 18 }}>
+          <div className="panel-head">
+            <div>
+              <h2>
+                <Globe size={18} /> Cloudflare traffic
+              </h2>
+              <p>Traffic reaching drastritmucaj.com at the edge · last {Math.min(trafficDays, 30)} days</p>
+            </div>
+            <span style={{ fontSize: 10, color: "#7b8798" }}>Edge analytics</span>
+          </div>
+
+          {site !== "All websites" && site !== "drastritmucaj.com" ? (
+            <div className="notice" style={{ marginBottom: 0 }}>
+              <Globe size={16} />
+              <div>
+                <b>Cloudflare data is available for drastritmucaj.com</b>
+                <span>
+                  The current Cloudflare integration is intentionally scoped to the main website.
+                </span>
+              </div>
+            </div>
+          ) : cloudflareLoading ? (
+            <div className="empty-state">
+              <b>Loading Cloudflare Analytics…</b>
+              <span>Fetching edge traffic data from the live API.</span>
+            </div>
+          ) : cloudflareError ? (
+            <div className="notice" style={{ marginBottom: 0 }}>
+              <Globe size={16} />
+              <div>
+                <b>Cloudflare Analytics unavailable</b>
+                <span>{cloudflareError}</span>
+              </div>
+            </div>
+          ) : cloudflareData ? (
+            <>
+              <div className="search-grid">
+                <div className="search-item">
+                  <span>Visits</span>
+                  <b>{formatNumber(cloudflareData.summary?.visits)}</b>
+                  <small>Cloudflare visits</small>
+                </div>
+                <div className="search-item">
+                  <span>Requests</span>
+                  <b>{formatNumber(cloudflareData.summary?.requests)}</b>
+                  <small>Edge requests</small>
+                </div>
+                <div className="search-item">
+                  <span>Data transferred</span>
+                  <b>{formatBytes(cloudflareData.summary?.dataTransferredBytes)}</b>
+                  <small>Edge response data</small>
+                </div>
+                <div className="search-item">
+                  <span>Top country</span>
+                  <b>{cloudflareCountries[0]?.country || "—"}</b>
+                  <small>By requests</small>
+                </div>
+              </div>
+
+              <div className="two" style={{ marginTop: 18, marginBottom: 0 }}>
+                <section className="panel">
+                  <div className="panel-head">
+                    <div>
+                      <h2>Cloudflare trend</h2>
+                      <p>Daily visits reaching the edge</p>
+                    </div>
+                    <TrendingUp size={19} />
+                  </div>
+
+                  <div className="bars">
+                    {cloudflareTrend.length ? cloudflareTrend.map((item, i) => (
+                      <i
+                        key={item.date + i}
+                        title={`${item.date}: ${formatNumber(item.visits)} visits`}
+                        style={{
+                          height: `${Math.max(
+                            5,
+                            (Number(item.visits || 0) / maxCloudflareVisits) * 100
+                          )}%`
+                        }}
+                      />
+                    )) : (
+                      <div className="empty-chart">
+                        <b>No trend data</b>
+                        <span>Cloudflare has not returned daily traffic yet.</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="chart-label">
+                    <span>{cloudflareTrend[0]?.date || "—"}</span>
+                    <span>{cloudflareTrend[cloudflareTrend.length - 1]?.date || "—"}</span>
+                  </div>
+                </section>
+
+                <section className="panel">
+                  <div className="panel-head">
+                    <div>
+                      <h2>Top countries</h2>
+                      <p>Where edge requests originate</p>
+                    </div>
+                    <Globe size={19} />
+                  </div>
+
+                  <div className="data-table">
+                    {cloudflareCountries.slice(0, 6).map((row, i) => (
+                      <div className="data-row" key={row.country + i}>
+                        <div>
+                          <b>{row.country || "Unknown"}</b>
+                          <small>{formatNumber(row.visits)} visits</small>
+                        </div>
+                        <strong>{formatNumber(row.requests)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <section className="panel" style={{ marginTop: 18 }}>
+                <div className="panel-head">
+                  <div>
+                    <h2>Top pages at the edge</h2>
+                    <p>Most requested paths on drastritmucaj.com</p>
+                  </div>
+                  <ArrowUpRight size={19} />
+                </div>
+
+                <div className="data-table">
+                  {cloudflarePages.slice(0, 8).map((row, i) => (
+                    <div className="data-row" key={row.page + i}>
+                      <div>
+                        <b>{row.page || "/"}</b>
+                        <small>{formatNumber(row.visits)} visits · {formatBytes(row.dataTransferredBytes)}</small>
+                      </div>
+                      <strong>{formatNumber(row.requests)}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </>
+          ) : null}
+        </section>
 
         {/* V5 FUNNEL TRACKING */}
         <section className="panel" id="funnel-tracking" style={{ marginTop: 18 }}>
