@@ -654,7 +654,19 @@ function App() {
 
   const cloudflareTrend = cloudflareData?.trend || [];
   const cloudflareCountries = cloudflareData?.countries || [];
-  const cloudflarePages = cloudflareData?.pages || [];
+  const cloudflarePages = (cloudflareData?.pages || []).filter(row => {
+    const path = String(row.page || "/").toLowerCase();
+    return (
+      path === "/" ||
+      !path.startsWith("/cdn-cgi/") &&
+      !path.includes("/wp-includes/") &&
+      !path.includes("/wp-content/") &&
+      !path.includes("/wp-admin") &&
+      !path.includes("/xmlrpc.php") &&
+      !path.includes("/wp-login.php") &&
+      path !== "/favicon.ico"
+    );
+  });
 
   const formatBytes = bytes => {
     const value = Number(bytes || 0);
