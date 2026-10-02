@@ -869,6 +869,66 @@ function App() {
           ))}
         </section>
 
+        {/* EXECUTIVE OVERVIEW */}
+        <section className="panel" id="executive-overview" style={{ marginTop: 18 }}>
+          <div className="panel-head">
+            <div>
+              <h2>
+                <TrendingUp size={18} /> Executive overview
+              </h2>
+              <p>Three views of the same website · measured differently</p>
+            </div>
+            <span style={{ fontSize: 10, color: "#7b8798" }}>GA4 · GSC · Cloudflare</span>
+          </div>
+
+          <div className="two" style={{ marginBottom: 0 }}>
+            <div className="search-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+              <div className="search-item">
+                <span>Google Search</span>
+                <b>{searchData ? formatNumber(searchData.clicks) : "—"}</b>
+                <small>
+                  {searchData
+                    ? `${formatNumber(searchData.impressions)} impressions · ${formatPercent(searchData.ctr)} CTR`
+                    : "Waiting for Search Console"}
+                </small>
+              </div>
+
+              <div className="search-item">
+                <span>GA4</span>
+                <b>{data ? formatNumber(isFilteredSite ? selectedPageUsers : data.users) : "—"}</b>
+                <small>
+                  {data
+                    ? `${formatNumber(isFilteredSite ? selectedPageViews : data.pageViews)} page views · ${formatPercent(isFilteredSite ? selectedEngagement : data.engagementRate)} engagement`
+                    : "Waiting for Google Analytics"}
+                </small>
+              </div>
+
+              <div className="search-item">
+                <span>Cloudflare edge</span>
+                <b>{cloudflareData ? formatNumber(cloudflareData.summary?.visits) : "—"}</b>
+                <small>
+                  {cloudflareData
+                    ? `${formatNumber(cloudflareData.summary?.requests)} requests · ${formatBytes(cloudflareData.summary?.dataTransferredBytes)} transferred`
+                    : "Waiting for Cloudflare Analytics"}
+                </small>
+              </div>
+            </div>
+
+            <div className="notice" style={{ margin: 0, alignItems: "flex-start" }}>
+              <Lightbulb size={16} />
+              <div>
+                <b>How to read this</b>
+                <span>
+                  Search Console measures Google visibility and clicks, GA4 measures
+                  website behavior, and Cloudflare measures traffic reaching the edge.
+                  Their totals are not expected to match because they use different
+                  definitions and measurement points.
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* V2 TRAFFIC */}
         <section className="panel" id="traffic-section" style={{ marginTop: 24 }}>
           <div className="panel-head">
