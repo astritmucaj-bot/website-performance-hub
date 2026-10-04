@@ -193,6 +193,23 @@ function getTrendPoints(trend, width = 900, height = 240) {
     .join(" ");
 }
 
+function formatMonth(value) {
+  if (!value || value.length !== 6) return value;
+  const year = value.slice(0, 4);
+  const month = value.slice(4, 6);
+  return new Date(year + "-" + month + "-01T12:00:00").toLocaleDateString(
+    "en-US",
+    { month: "short", year: "numeric" }
+  );
+}
+
+function monthChange(current, previous) {
+  const a = Number(current || 0);
+  const b = Number(previous || 0);
+  if (!b) return null;
+  return ((a - b) / b) * 100;
+}
+
 function App() {
   const [site, setSite] = React.useState(sites[0]);
 
@@ -635,6 +652,7 @@ function App() {
   const sources = trafficData?.sources || [];
   const countries = trafficData?.countries || [];
   const devices = trafficData?.devices || [];
+  const monthly = trafficData?.monthly || [];
 
   const trendPoints = getTrendPoints(trend);
 
@@ -1058,6 +1076,52 @@ function App() {
                   </div>
                 )}
               </div>
+
+              <section className="panel" style={{ marginTop: 18 }}>
+                <div className="panel-head">
+                  <div>
+                    <h2>Monthly performance</h2>
+                    <p>Real GA4 monthly comparison · last 6 months</p>
+                  </div>
+                  <BarChart3 size={20} />
+                </div>
+
+                {monthly.length ? (
+                  <div className="data-table">
+                    {monthly.slice(-6).map((row, i, rows) => {
+                      const previous = rows[i - 1];
+                      const usersChange = monthChange(row.users, previous?.users);
+                      const sessionsChange = monthChange(row.sessions, previous?.sessions);
+                      const viewsChange = monthChange(row.pageviews, previous?.pageviews);
+
+                      return (
+                        <div className="data-row" key={row.month}>
+                          <div style={{ flex: 1 }}>
+                            <b>{formatMonth(row.month)}</b>
+                            <small>
+                              {formatNumber(row.users)} users ·{" "}
+                              {formatNumber(row.sessions)} sessions ·{" "}
+                              {formatNumber(row.pageviews)} views ·{" "}
+                              {formatPercent(row.engagementRate)} engagement
+                            </small>
+                          </div>
+
+                          <div style={{ minWidth: 150, textAlign: "right" }}>
+                            <small>Users {usersChange === null ? "—" : (usersChange >= 0 ? "+" : "") + usersChange.toFixed(0) + "%"}</small>
+                            <small>Sessions {sessionsChange === null ? "—" : (sessionsChange >= 0 ? "+" : "") + sessionsChange.toFixed(0) + "%"}</small>
+                            <small>Views {viewsChange === null ? "—" : (viewsChange >= 0 ? "+" : "") + viewsChange.toFixed(0) + "%"}</small>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <b>No monthly comparison data</b>
+                    <span>GA4 has not returned monthly performance data yet.</span>
+                  </div>
+                )}
+              </section>
 
               <div className="two" style={{ marginTop: 18 }}>
                 <section className="panel">
