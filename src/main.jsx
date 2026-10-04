@@ -1282,7 +1282,6 @@ function App() {
                   : "Connecting to live Search Console data."}
               </span>
             </div>
-            </div>
           </>
           ) : (
             <div className="empty-state">
