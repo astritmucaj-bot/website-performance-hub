@@ -99,7 +99,23 @@ function normalizeContentPath(value) {
 
 function contentLabel(path) {
   if (!path || path === "/") return "Homepage";
-  const clean = path.replace(/^\/+|\/+$/g, "");
+
+  let clean = path.replace(/^\/+|\/+$/g, "");
+
+  try {
+    clean = decodeURIComponent(clean);
+  } catch {
+    // Keep the original path if it is only partially encoded.
+  }
+
+  if (/[ÃÂ]/.test(clean)) {
+    try {
+      clean = decodeURIComponent(escape(clean));
+    } catch {
+      // Keep the decoded value if the byte sequence cannot be repaired.
+    }
+  }
+
   return clean
     .split("/")
     .filter(Boolean)
@@ -622,22 +638,7 @@ function App() {
   const totalTrafficSessions = selectedPageSessions;
   const totalTrafficPageviews = selectedPageViews;
 
-  const weightedEngagementDenominator = trend.reduce(
-    (sum, item) => sum + Number(item.sessions || 0),
-    0
-  );
-
-  const weightedEngagement = site === "Google Site"
-    ? selectedEngagement
-    : weightedEngagementDenominator
-    ? trend.reduce(
-        (sum, item) =>
-          sum +
-          Number(item.engagementRate || 0) *
-            Number(item.sessions || 0),
-        0
-      ) / weightedEngagementDenominator
-    : 0;
+  const weightedEngagement = selectedEngagement;
 
   return (
     <div className="app">
