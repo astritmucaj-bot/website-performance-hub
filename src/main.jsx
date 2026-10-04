@@ -318,6 +318,9 @@ function App() {
     )
     .slice(0, 8);
 
+  const seoQueryRows = site === "drastritmucaj.com" ? queryRows : [];
+  const seoPageRows = site === "drastritmucaj.com" ? pageRows : [];
+
   const opportunities = [
     ...seoPageRows
       .filter(row => row.impressions >= 20 && row.clicks === 0)
@@ -374,9 +377,6 @@ function App() {
     : 0;
 
   const isFilteredSite = true;
-
-  const seoQueryRows = site === "drastritmucaj.com" ? queryRows : [];
-  const seoPageRows = site === "drastritmucaj.com" ? pageRows : [];
 
   const searchOpportunities = [
     ...seoQueryRows
