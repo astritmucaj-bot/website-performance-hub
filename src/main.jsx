@@ -1205,23 +1205,27 @@ function App() {
 
         <div className="two">
           <section className="panel" id="google-search">
-            <div className="panel-head">
-              <div>
-                <h2>Google Search</h2>
-                <p>
-                  {searchError
+          <div className="panel-head">
+            <div>
+              <h2>Google Search</h2>
+              <p>
+                {site === "drastritmucaj.com"
+                  ? searchError
                     ? `Search Console error: ${searchError}`
-                    : "Live Google Search Console data · sc-domain:drastritmucaj.com"}
-                </p>
-                {site === "Google Site" && (
-                  <span className="search-console-note">
-                    Data shown here belongs to drastritmucaj.com, not the Google Site.
-                  </span>
-                )}
-              </div>
-              <Search size={20} />
+                    : "Live Google Search Console data · sc-domain:drastritmucaj.com"
+                  : "Not connected for this website"}
+              </p>
+              {site !== "drastritmucaj.com" && (
+                <span className="search-console-note">
+                  Search Console is currently connected only to drastritmucaj.com.
+                </span>
+              )}
             </div>
+            <Search size={20} />
+          </div>
 
+          {site === "drastritmucaj.com" ? (
+          <>
             <div className="search-grid">
               {[
                 [
@@ -1278,7 +1282,18 @@ function App() {
                   : "Connecting to live Search Console data."}
               </span>
             </div>
-          </section>
+            </div>
+          </>
+          ) : (
+            <div className="empty-state">
+              <b>Search Console not connected</b>
+              <span>
+                Connect this site to Google Search Console to see clicks, impressions,
+                CTR, queries and landing pages here.
+              </span>
+            </div>
+          )}
+        </section>
 
           <section className="panel" id="conversion-funnel">
             <div className="panel-head">
