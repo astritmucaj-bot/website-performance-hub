@@ -608,6 +608,47 @@ function App() {
     traffic: insightItems.filter(item => item.category === "Traffic").length
   };
 
+  const events = trafficData?.events || [];
+  const trackedConversionEvents = ["click_whatsapp", "click_phone", "contact_submit", "consultation_confirmed", "patient_confirmed"]
+    .map(name => ({ name, count: Number(events.find(e => e.eventName === name)?.count || 0) }));
+  const conversionTotal = trackedConversionEvents
+    .filter(e => ["click_whatsapp", "click_phone", "contact_submit"].includes(e.name))
+    .reduce((sum, e) => sum + e.count, 0);
+
+  const monthlyRows = (trafficData?.monthly || []).slice(-7);
+  const currentMonth = monthlyRows[monthlyRows.length - 1];
+  const previousMonth = monthlyRows[monthlyRows.length - 2];
+  const monthlyChanges = currentMonth && previousMonth ? {
+    users: monthChange(currentMonth.users, previousMonth.users),
+    sessions: monthChange(currentMonth.sessions, previousMonth.sessions),
+    pageviews: monthChange(currentMonth.pageviews, previousMonth.pageviews),
+    engagement: (Number(currentMonth.engagementRate || 0) - Number(previousMonth.engagementRate || 0)) * 100
+  } : null;
+
+  const anomalies = [
+    monthlyChanges?.users != null && Math.abs(monthlyChanges.users) >= 25 ? { label: "Users changed sharply", value: monthlyChanges.users, tone: monthlyChanges.users < 0 ? "amber" : "green" } : null,
+    monthlyChanges?.sessions != null && Math.abs(monthlyChanges.sessions) >= 25 ? { label: "Sessions changed sharply", value: monthlyChanges.sessions, tone: monthlyChanges.sessions < 0 ? "amber" : "green" } : null,
+    monthlyChanges?.pageviews != null && Math.abs(monthlyChanges.pageviews) >= 25 ? { label: "Page views changed sharply", value: monthlyChanges.pageviews, tone: monthlyChanges.pageviews < 0 ? "amber" : "green" } : null
+  ].filter(Boolean);
+
+  const contentScores = contentRows
+    .filter(row => row.pageViews > 0 || row.impressions > 0)
+    .map(row => {
+      const traffic = Math.min(Number(row.pageViews || 0) / Math.max(selectedPageViews, 1), 1);
+      const visibility = Math.min(Number(row.impressions || 0) / 500, 1);
+      const ctrGap = Number(row.impressions || 0) >= 10 ? Math.max(0, 1 - Number(row.ctr || 0) / 0.05) : 0;
+      return { ...row, score: Math.round((traffic * 40) + (visibility * 30) + (ctrGap * 30)) };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  const priorityActions = [
+    ...(contentOpportunities.length ? [{ priority: 1, title: "Improve a high-visibility page CTR", detail: contentOpportunities[0].label + " has " + (Number(contentOpportunities[0].ctr || 0) * 100).toFixed(1) + "% CTR from " + formatNumber(contentOpportunities[0].impressions) + " impressions.", tone: "amber" }] : []),
+    ...(anomalies.some(a => a.tone === "amber") ? [{ priority: 2, title: "Investigate the traffic drop", detail: anomalies.filter(a => a.tone === "amber").map(a => a.label + ": " + a.value.toFixed(0) + "%").join(" · "), tone: "amber" }] : []),
+    ...(highTrafficContent.length ? [{ priority: 3, title: "Build around your strongest content", detail: highTrafficContent[0].label + " is currently your strongest traffic page. Add related content and a clear consultation CTA.", tone: "green" }] : []),
+    ...(conversionTotal === 0 ? [{ priority: 4, title: "Connect conversion tracking", detail: "GA4 has no tracked WhatsApp, phone or contact events yet, so the Hub cannot measure which traffic becomes an enquiry.", tone: "blue" }] : [])
+  ].slice(0, 4);
+
   const cards = data
     ? [
         [
@@ -1124,7 +1165,37 @@ function App() {
               </section>
 
               <div className="two" style={{ marginTop: 18 }}>
-                <section className="panel">
+              <section className="panel" id="v73-actions" style={{ marginBottom: 18 }}>
+          <div className="panel-head">
+            <div><h2>V7.3 — What should I do next?</h2><p>Prioritized actions from traffic, SEO, content and conversion signals</p></div>
+            <Lightbulb size={20} />
+          </div>
+          {priorityActions.length ? priorityActions.map((item, i) => (
+            <div className={"insight " + item.tone} key={i}>
+              <small>Priority {item.priority}</small>
+              <b>{item.title}</b>
+              <span>{item.detail}</span>
+            </div>
+          )) : <div className="empty-state"><b>No priority actions yet</b><span>More data will unlock the next recommendations.</span></div>}
+        </section>
+
+        <div className="two">
+          <section className="panel">
+            <div className="panel-head"><div><h2>Performance anomalies</h2><p>Large month-over-month changes worth investigating</p></div><TrendingUp size={20} /></div>
+            {anomalies.length ? anomalies.map((a, i) => <div className={"insight " + a.tone} key={i}><b>{a.label}</b><span>{a.value >= 0 ? "+" : ""}{a.value.toFixed(1)}% vs previous month</span></div>) : <div className="empty-state"><b>No major anomaly detected</b><span>We flag changes of roughly ±25% or more.</span></div>}
+          </section>
+          <section className="panel">
+            <div className="panel-head"><div><h2>Conversion signals</h2><p>Real GA4 events — no invented numbers</p></div><MessageCircle size={20} /></div>
+            <div className="search-grid">{trackedConversionEvents.slice(0,3).map(e => <div className="search-item" key={e.name}><span>{e.name}</span><b>{e.count ? formatNumber(e.count) : "Not tracked"}</b><small>{e.count ? "GA4 event count" : "Add this event to GA4"}</small></div>)}</div>
+          </section>
+        </div>
+
+        <section className="panel" style={{ marginBottom: 18 }}>
+          <div className="panel-head"><div><h2>Content Opportunity Score</h2><p>Pages with the strongest combination of traffic, visibility and CTR upside</p></div><BarChart3 size={20} /></div>
+          <div className="data-table">{contentScores.length ? contentScores.map((row, i) => <div className="data-row" key={row.path + i}><div style={{flex:1}}><b>{row.label}</b><small>{formatNumber(row.pageViews)} views · {formatNumber(row.impressions)} impressions · {(Number(row.ctr || 0) * 100).toFixed(1)}% CTR</small></div><strong>{row.score}/100</strong></div>) : <div className="empty-state"><b>No scored content yet</b><span>Traffic or Search Console data is needed to calculate opportunity.</span></div>}</div>
+        </section>
+
+          <section className="panel">
                   <div className="panel-head">
                     <div>
                       <h2>Traffic sources</h2>
@@ -1812,7 +1883,7 @@ function App() {
         </section>
 
         <footer>
-          Website Performance Hub <span>•</span> V7.1 · Live GA4 +
+          Website Performance Hub <span>•</span> V7.3 · Live GA4 +
           Search Console · Insights engine active
         </footer>
       </main>
