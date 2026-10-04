@@ -351,30 +351,21 @@ function App() {
       : [])
   ].slice(0, 3);
 
-  const selectedPageUsers = filteredPageRows.reduce(
-    (sum, row) => sum + Number(row.users || 0),
-    0
-  );
+  const selectedPageUsers = site === "drastritmucaj.com"
+    ? Number(data?.users || 0)
+    : Number(trafficData?.siteUsers || 0);
 
-  const selectedPageSessions = filteredPageRows.reduce(
-    (sum, row) => sum + Number(row.sessions || 0),
-    0
-  );
+  const selectedPageSessions = site === "drastritmucaj.com"
+    ? Number(data?.sessions || 0)
+    : Number(trafficData?.siteSessions || 0);
 
-  const selectedPageViews = filteredPageRows.reduce(
-    (sum, row) => sum + Number(row.pageViews || 0),
-    0
-  );
+  const selectedPageViews = site === "drastritmucaj.com"
+    ? Number(data?.pageViews || 0)
+    : Number(trafficData?.sitePageViews || 0);
 
-  const selectedEngagement = selectedPageViews
-    ? filteredPageRows.reduce(
-        (sum, row) =>
-          sum +
-          Number(row.engagementRate || 0) *
-            Number(row.pageViews || 0),
-        0
-      ) / selectedPageViews
-    : 0;
+  const selectedEngagement = site === "drastritmucaj.com"
+    ? Number(data?.engagementRate || 0)
+    : Number(trafficData?.siteEngagementRate || 0);
 
   const isFilteredSite = true;
 
