@@ -107,6 +107,30 @@ function contentLabel(path) {
     .join(" / ");
 }
 
+function displayQuery(value) {
+  if (!value) return "—";
+
+  let result = String(value);
+
+  try {
+    if (/%[0-9A-Fa-f]{2}/.test(result)) {
+      result = decodeURIComponent(result);
+    }
+  } catch {
+    // Keep the original value if it is only partially encoded.
+  }
+
+  if (/[ÃÂ]/.test(result)) {
+    try {
+      result = decodeURIComponent(escape(result));
+    } catch {
+      // Keep the decoded value if the byte sequence cannot be repaired.
+    }
+  }
+
+  return result;
+}
+
 function trafficSiteParam(selectedSite) {
   if (selectedSite === "Google Site") return "sites.google.com";
   return selectedSite;
@@ -335,10 +359,8 @@ function App() {
         tone: "amber"
       })),
 
-    ...(pageRows.some(row => row.page.includes("www.")) &&
-    pageRows.some(
-      row =>
-        row.page.includes("drastritmucaj.com") &&
+    ...(seoPageRows.some(row => row.page.includes("www.")) &&
+    seoPageRows.some(row => row.page.includes("drastritmucaj.com") &&
         !row.page.includes("www.")
     )
       ? [
@@ -375,7 +397,7 @@ function App() {
       .slice(0, 1)
       .map(row => ({
         title: "Query with impressions but no clicks",
-        text: `“${row.query}” has ${formatNumber(row.impressions)} impressions but no clicks. Review the page title and search snippet.`,
+        text: `“${displayQuery(row.query)}” has ${formatNumber(row.impressions)} impressions but no clicks. Review the page title and search snippet.`,
         tone: "amber"
       })),
     ...seoQueryRows
@@ -383,7 +405,7 @@ function App() {
       .slice(0, 1)
       .map(row => ({
         title: "Query with low CTR",
-        text: `“${row.query}” generated ${formatNumber(row.impressions)} impressions and ${formatNumber(row.clicks)} clicks (CTR ${(Number(row.ctr || 0) * 100).toFixed(1)}%).`,
+        text: `“${displayQuery(row.query)}” generated ${formatNumber(row.impressions)} impressions and ${formatNumber(row.clicks)} clicks (CTR ${(Number(row.ctr || 0) * 100).toFixed(1)}%).`,
         tone: "blue"
       })),
     ...seoPageRows
@@ -433,7 +455,7 @@ function App() {
         })
       }))
       .sort((a, b) => b.pageViews - a.pageViews);
-  }, [filteredPageRows, pageRows]);
+  }, [filteredPageRows, seoPageRows]);
 
   const contentSearchRows = [...seoPageRows]
     .map(row => ({
@@ -456,9 +478,11 @@ function App() {
     {
       key: "search",
       label: "Google Search clicks",
-      value: searchData ? formatNumber(searchData.clicks) : "—",
-      detail: "Measured by Search Console · last 30 days",
-      status: searchData ? "live" : "loading"
+      value: site === "drastritmucaj.com" && searchData ? formatNumber(searchData.clicks) : "—",
+      detail: site === "drastritmucaj.com"
+        ? "Measured by Search Console · last 30 days"
+        : "Search Console not connected for this website",
+      status: site === "drastritmucaj.com" && searchData ? "live" : "setup"
     },
     {
       key: "visitors",
@@ -594,17 +618,9 @@ function App() {
     1
   );
 
-  const totalTrafficUsers = site === "Google Site"
-    ? selectedPageUsers
-    : trend.reduce((sum, item) => sum + Number(item.users || 0), 0);
-
-  const totalTrafficSessions = site === "Google Site"
-    ? selectedPageSessions
-    : trend.reduce((sum, item) => sum + Number(item.sessions || 0), 0);
-
-  const totalTrafficPageviews = site === "Google Site"
-    ? selectedPageViews
-    : trend.reduce((sum, item) => sum + Number(item.pageviews || 0), 0);
+  const totalTrafficUsers = selectedPageUsers;
+  const totalTrafficSessions = selectedPageSessions;
+  const totalTrafficPageviews = selectedPageViews;
 
   const weightedEngagementDenominator = trend.reduce(
     (sum, item) => sum + Number(item.sessions || 0),
@@ -761,7 +777,7 @@ function App() {
                   : error
                   ? "Unavailable"
                   : isFilteredSite
-                  ? "Selected site · page-level data · last 30 days"
+                  ? "Selected site · GA4 aggregate · last 30 days"
                   : "Selected site · last 30 days"}
               </small>
             </div>
@@ -1346,10 +1362,10 @@ function App() {
 
             <div className="data-table">
               {queryRows.length ? (
-                queryRows.slice(0, 8).map((row, i) => (
+                seoQueryRows.slice(0, 8).map((row, i) => (
                   <div className="data-row" key={i}>
                     <div style={{ flex: 1 }}>
-                      <b>{row.query}</b>
+                      <b>{displayQuery(row.query)}</b>
                       <small>
                         {formatNumber(row.impressions)} impressions ·{" "}
                         {formatNumber(row.clicks)} clicks
@@ -1382,7 +1398,7 @@ function App() {
 
             <div className="data-table">
               {pageRows.length ? (
-                pageRows.slice(0, 8).map((row, i) => (
+                seoPageRows.slice(0, 8).map((row, i) => (
                   <div className="data-row" key={i}>
                     <div style={{ flex: 1 }}>
                       <b>{shortPageUrl(row.page)}</b>
