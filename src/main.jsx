@@ -812,11 +812,11 @@ function App() {
             <div className="search-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
               {insightItems.slice(0, 3).map((item, i) => (
                 <div className={`insight ${item.tone}`} key={`action-${i}`} style={{ margin: 0 }}>
-                  <small style={{ display: "block", marginBottom: 4, opacity: 0.7 }}>{item.category}</small>
-                  <b>{item.title}</b>
-                  <span><strong>Evidence:</strong> {item.evidence}</span>
-                  <span><strong>Recommended action:</strong> {item.recommendation}</span>
-                  <button>{item.action}</button>
+                  <small style={{ display: "block", marginBottom: 2, opacity: 0.7, gridColumn: "1 / -1" }}>{item.category}</small>
+                  <b style={{ gridColumn: "1 / -1" }}>{item.title}</b>
+                  <span style={{ gridColumn: "1 / -1" }}><strong>Evidence:</strong> {item.evidence}</span>
+                  <span style={{ gridColumn: "1 / -1" }}><strong>Recommended action:</strong> {item.recommendation}</span>
+                  <button style={{ gridColumn: "1 / -1", justifySelf: "start" }}>{item.action}</button>
                 </div>
               ))}
             </div>
