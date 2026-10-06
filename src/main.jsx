@@ -809,13 +809,11 @@ function App() {
               <strong>{value}</strong>
 
               <small className="positive">
-                {loading
+                {trafficLoading
                   ? "Loading…"
-                  : error
+                  : trafficError
                   ? "Unavailable"
-                  : isFilteredSite
-                  ? "Selected site · GA4 aggregate · last 30 days"
-                  : "Selected site · last 30 days"}
+                  : "Selected site · GA4 hostname-filtered · last 30 days"}
               </small>
             </div>
           ))}
@@ -876,10 +874,10 @@ function App() {
 
               <div className="search-item">
                 <span>GA4</span>
-                <b>{data ? formatNumber(isFilteredSite ? selectedPageUsers : data.users) : "—"}</b>
+                <b>{trafficData ? formatNumber(selectedPageUsers) : "—"}</b>
                 <small>
-                  {data
-                    ? `${formatNumber(isFilteredSite ? selectedPageViews : data.pageViews)} page views · ${formatPercent(isFilteredSite ? selectedEngagement : data.engagementRate)} engagement`
+                  {trafficData
+                    ? `${formatNumber(selectedPageViews)} page views · ${formatPercent(selectedEngagement)} engagement`
                     : "Waiting for Google Analytics"}
                 </small>
               </div>
