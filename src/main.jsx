@@ -406,23 +406,12 @@ function App() {
       : [])
   ].slice(0, 3);
 
-  const selectedPageUsers = site === "drastritmucaj.com"
-    ? Number(data?.users || 0)
-    : Number(trafficData?.siteUsers || 0);
-
-  const selectedPageSessions = site === "drastritmucaj.com"
-    ? Number(data?.sessions || 0)
-    : Number(trafficData?.siteSessions || 0);
-
-  const selectedPageViews = site === "drastritmucaj.com"
-    ? Number(data?.pageViews || 0)
-    : Number(trafficData?.sitePageViews || 0);
-
-  const selectedEngagement = site === "drastritmucaj.com"
-    ? Number(data?.engagementRate || 0)
-    : Number(trafficData?.siteEngagementRate || 0);
-
-  const isFilteredSite = true;
+  // Summary metrics always come from the hostname-filtered traffic endpoint.
+  // The unfiltered GA4 report is still used for page-level data.
+  const selectedPageUsers = Number(trafficData?.siteUsers || 0);
+  const selectedPageSessions = Number(trafficData?.siteSessions || 0);
+  const selectedPageViews = Number(trafficData?.sitePageViews || 0);
+  const selectedEngagement = Number(trafficData?.siteEngagementRate || 0);
 
   const searchOpportunities = [
     ...seoQueryRows
@@ -520,11 +509,11 @@ function App() {
     {
       key: "visitors",
       label: "Website visitors",
-      value: data
-        ? formatNumber(isFilteredSite ? selectedPageUsers : data.users)
+      value: trafficData
+        ? formatNumber(selectedPageUsers)
         : "—",
-      detail: "Measured by GA4 · last 30 days",
-      status: data ? "live" : "loading"
+      detail: "Measured by GA4 · selected site · last 30 days",
+      status: trafficData ? "live" : "loading"
     },
     {
       key: "contact",
@@ -649,38 +638,12 @@ function App() {
     ...(conversionTotal === 0 ? [{ priority: 4, title: "Connect conversion tracking", detail: "GA4 has no tracked WhatsApp, phone or contact events yet, so the Hub cannot measure which traffic becomes an enquiry.", tone: "blue" }] : [])
   ].slice(0, 4);
 
-  const cards = data
+  const cards = trafficData
     ? [
-        [
-          "Users",
-          formatNumber(
-            isFilteredSite ? selectedPageUsers : data.users
-          ),
-          Users
-        ],
-        [
-          "Sessions",
-          formatNumber(
-            isFilteredSite ? selectedPageSessions : data.sessions
-          ),
-          MousePointerClick
-        ],
-        [
-          "Page views",
-          formatNumber(
-            isFilteredSite ? selectedPageViews : data.pageViews
-          ),
-          Eye
-        ],
-        [
-          "Engagement",
-          `${(
-            (isFilteredSite
-              ? selectedEngagement
-              : data.engagementRate) * 100
-          ).toFixed(1)}%`,
-          TrendingUp
-        ]
+        ["Users", formatNumber(selectedPageUsers), Users],
+        ["Sessions", formatNumber(selectedPageSessions), MousePointerClick],
+        ["Page views", formatNumber(selectedPageViews), Eye],
+        ["Engagement", `${(selectedEngagement * 100).toFixed(1)}%`, TrendingUp]
       ]
     : [
         ["Users", "—", Users],
@@ -796,7 +759,7 @@ function App() {
                 ? "Connecting to live Google Analytics data…"
                 : error
                 ? `GA4 connection error: ${error}`
-                : "Data source: live GA4 · Property 549643321"}
+                : "Data source: live GA4 · Property 549643321 · hostname filtered"}
             </span>
           </div>
 
