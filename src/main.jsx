@@ -885,7 +885,7 @@ function App() {
         </nav>
 
         <div className="side-foot">
-          V7.4 • Live GA4 + GSC
+          V7.5 • Live GA4 + GSC
           <br />
           <span>Insights engine active</span>
         </div>
@@ -2030,7 +2030,7 @@ function App() {
         </section>
 
         <footer>
-          Website Performance Hub <span>•</span> V7.4 · Live GA4 +
+          Website Performance Hub <span>•</span> V7.5 · Live GA4 +
           Search Console · Insights engine active
         </footer>
       </main>
