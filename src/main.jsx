@@ -662,7 +662,7 @@ function App() {
     })),
     ...((contentOpportunities || []).map(row => ({
       category: "Content",
-      title: `Low CTR: ${row.label}`,
+      title: `${Number(row.impressions || 0) >= 500 ? "High-impact CTR opportunity" : "CTR opportunity"}: ${row.label}`,
       text: `${formatNumber(row.impressions)} impressions → ${formatNumber(row.clicks)} clicks → ${(Number(row.ctr || 0) * 100).toFixed(1)}% CTR.`,
       evidence: `${formatNumber(row.impressions)} impressions, ${formatNumber(row.clicks)} clicks, average position ${Number(row.position || 0).toFixed(1)}.`,
       recommendation:
@@ -868,7 +868,7 @@ function App() {
         </nav>
 
         <div className="side-foot">
-          V6 • Live GA4 + GSC
+          V7.4 • Live GA4 + GSC
           <br />
           <span>Insights engine active</span>
         </div>
@@ -2013,7 +2013,7 @@ function App() {
         </section>
 
         <footer>
-          Website Performance Hub <span>•</span> V7.3 · Live GA4 +
+          Website Performance Hub <span>•</span> V7.4 · Live GA4 +
           Search Console · Insights engine active
         </footer>
       </main>
