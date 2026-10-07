@@ -1298,7 +1298,7 @@ function App() {
               <div className="two" style={{ marginTop: 18 }}>
               <section className="panel" id="v73-actions" style={{ marginBottom: 18 }}>
           <div className="panel-head">
-            <div><h2>V7.3 — What should I do next?</h2><p>Prioritized actions from traffic, SEO, content and conversion signals</p></div>
+            <div><h2>V7.4 — What should I do next?</h2><p>Prioritized actions from traffic, SEO, content and conversion signals</p></div>
             <Lightbulb size={20} />
           </div>
           {priorityActions.length ? priorityActions.map((item, i) => (
