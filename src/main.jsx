@@ -462,6 +462,8 @@ function App() {
       .slice(0, 2)
       .map(row => ({
         title: "Strong page opportunity",
+        page: row.page,
+        position: Number(row.position || 0),
         text: `${shortPageUrl(row.page)} has ${formatNumber(
           row.impressions
         )} impressions, 0 clicks and average position ${Number(
@@ -650,7 +652,7 @@ function App() {
         item.title.includes("www / non-www") || item.title.includes("hostname")
           ? "Check redirects and canonical URLs first. Only retest titles/snippets after Google consistently sees one preferred hostname."
           : item.title.includes("Strong page opportunity")
-          ? Number(seoPageRows.find(row => shortPageUrl(row.page) === shortPageUrl(item.page))?.position || 0) > 10
+          ? Number(item.position || 0) > 10
             ? "Strengthen the page content and search targeting first; the page is around the edge of page 1, so relevance and authority matter before relying on snippet changes."
             : "Review the page title and meta description, then monitor CTR because the page already has strong search visibility."
           : item.title.includes("no clicks")
