@@ -26,13 +26,8 @@ function formatPercent(value) {
 }
 
 function shortPageUrl(value) {
-  try {
-    const url = new URL(value);
-    const path = url.pathname === "/" ? "/" : url.pathname;
-    return path;
-  } catch {
-    return value;
-  }
+  const path = normalizeContentPath(value);
+  return contentLabel(path) === "Homepage" ? "/" : path;
 }
 
 function matchesSite(row, selectedSite) {
@@ -654,6 +649,10 @@ function App() {
       recommendation:
         item.title.includes("www / non-www") || item.title.includes("hostname")
           ? "Check redirects and canonical URLs first. Only retest titles/snippets after Google consistently sees one preferred hostname."
+          : item.title.includes("Strong page opportunity")
+          ? Number(seoPageRows.find(row => shortPageUrl(row.page) === shortPageUrl(item.page))?.position || 0) > 10
+            ? "Strengthen the page content and search targeting first; the page is around the edge of page 1, so relevance and authority matter before relying on snippet changes."
+            : "Review the page title and meta description, then monitor CTR because the page already has strong search visibility."
           : item.title.includes("no clicks")
           ? "Review the search intent and snippet. Ten impressions is treated as an early signal; these recommendations now require a larger sample."
           : "Review the search snippet and test a clearer, more specific title.",
