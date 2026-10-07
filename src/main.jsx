@@ -428,6 +428,12 @@ function App() {
 
   const seoQueryRows = site === "drastritmucaj.com" ? queryRows : [];
   const rawSeoPageRows = site === "drastritmucaj.com" ? pageRows : [];
+  const rankingOpportunities = site === "drastritmucaj.com"
+    ? (searchData?.rankingOpportunities || [])
+    : [];
+  const decaySignals = site === "drastritmucaj.com"
+    ? (searchData?.decay || [])
+    : [];
 
   const seoPageRows = React.useMemo(
     () => aggregateSearchPages(rawSeoPageRows),
@@ -482,63 +488,66 @@ function App() {
 
   const searchOpportunities = [
     ...(hasHostnameSplit
-      ? [
-          {
-            title: "Technical: www / non-www split",
-            text: "Google is seeing both hostname variants. Verify one preferred canonical hostname and a consistent redirect before making content changes.",
-            tone: "blue"
-          }
-        ]
+      ? [{
+          title: "Technical: www / non-www split",
+          text: "Google is seeing both hostname variants. Verify one preferred canonical hostname and a consistent redirect before making content changes.",
+          tone: "blue"
+        }]
       : []),
+    ...rankingOpportunities
+      .filter(row => Number(row.potentialClicks || 0) >= 1)
+      .slice(0, 1)
+      .map(row => ({
+        title: "Ranking opportunity",
+        text: `“${displayQuery(row.query)}” ranks around ${Number(row.position || 0).toFixed(1)} with ${formatNumber(row.impressions)} impressions. Moving toward position ${Number(row.targetPosition || 3).toFixed(0)} is estimated to unlock ~${Number(row.potentialClicks || 0).toFixed(1)} additional clicks.`,
+        tone: "amber",
+        evidence: "Directional estimate based on Search Console data and an external CTR benchmark."
+      })),
+    ...decaySignals
+      .filter(row => Number(row.clickChangePct || 0) <= -20)
+      .slice(0, 1)
+      .map(row => ({
+        title: "Content decay detected",
+        text: `${shortPageUrl(row.page)} lost ${Math.abs(Number(row.clickChangePct || 0)).toFixed(0)}% of clicks versus the previous period (${formatNumber(row.baselineClicks)} → ${formatNumber(row.recentClicks)}).`,
+        tone: "amber",
+        evidence: "Compared with the previous same-length Search Console period."
+      })),
     ...seoQueryRows
-      .filter(
-        row =>
-          Number(row.impressions || 0) >= 50 &&
-          Number(row.clicks || 0) === 0
+      .filter(row =>
+        Number(row.impressions || 0) >= 50 &&
+        Number(row.clicks || 0) === 0
       )
       .slice(0, 1)
       .map(row => ({
         title: "Strong query opportunity",
-        text: `“${displayQuery(row.query)}” has ${formatNumber(
-          row.impressions
-        )} impressions but no clicks. This is a meaningful enough sample to review the snippet and search intent.`,
+        text: `“${displayQuery(row.query)}” has ${formatNumber(row.impressions)} impressions but no clicks. This is a meaningful enough sample to review the snippet and search intent.`,
         tone: "amber"
       })),
     ...seoQueryRows
-      .filter(
-        row =>
-          Number(row.impressions || 0) >= 50 &&
-          Number(row.clicks || 0) > 0 &&
-          Number(row.ctr || 0) < 0.02 &&
-          Number(row.position || 0) <= 10
+      .filter(row =>
+        Number(row.impressions || 0) >= 50 &&
+        Number(row.clicks || 0) > 0 &&
+        Number(row.ctr || 0) < 0.02 &&
+        Number(row.position || 0) <= 10
       )
       .slice(0, 1)
       .map(row => ({
         title: "Strong query CTR opportunity",
-        text: `“${displayQuery(row.query)}” generated ${formatNumber(
-          row.impressions
-        )} impressions and ${formatNumber(
-          row.clicks
-        )} clicks (CTR ${(Number(row.ctr || 0) * 100).toFixed(1)}%) at average position ${Number(
-          row.position || 0
-        ).toFixed(1)}.`,
+        text: `“${displayQuery(row.query)}” generated ${formatNumber(row.impressions)} impressions and ${formatNumber(row.clicks)} clicks (CTR ${(Number(row.ctr || 0) * 100).toFixed(1)}%) at average position ${Number(row.position || 0).toFixed(1)}.`,
         tone: "blue"
       })),
     ...seoPageRows
-      .filter(
-        row =>
-          Number(row.impressions || 0) >= 50 &&
-          Number(row.clicks || 0) === 0 &&
-          row.path !== "/"
+      .filter(row =>
+        Number(row.impressions || 0) >= 50 &&
+        Number(row.clicks || 0) === 0 &&
+        row.path !== "/"
       )
       .slice(0, 1)
       .map(row => ({
         title: "Strong page opportunity",
-        text: `${shortPageUrl(row.page)} has ${formatNumber(
-          row.impressions
-        )} impressions, 0 clicks and average position ${Number(
-          row.position || 0
-        ).toFixed(1)}.`,
+        page: row.page,
+        position: Number(row.position || 0),
+        text: `${shortPageUrl(row.page)} has ${formatNumber(row.impressions)} impressions, 0 clicks and average position ${Number(row.position || 0).toFixed(1)}.`,
         tone: "amber"
       }))
   ].slice(0, 3);
@@ -745,68 +754,75 @@ function App() {
 
   const priorityActions = [
     ...(hasHostnameSplit
-      ? [
-          {
-            priority: 1,
-            title: "Fix www / non-www consistency",
-            detail: "Google Search Console is reporting both hostname variants. Verify redirects and canonical URLs before treating homepage CTR as a content problem.",
-            tone: "blue"
-          }
-        ]
+      ? [{
+          priority: 1,
+          title: "Fix www / non-www consistency",
+          detail: "Google Search Console is reporting both hostname variants. Verify redirects and canonical URLs before treating homepage CTR as a content problem.",
+          tone: "blue"
+        }]
+      : []),
+    ...(rankingOpportunities.length && Number(rankingOpportunities[0].potentialClicks || 0) >= 1
+      ? [{
+          priority: hasHostnameSplit ? 2 : 1,
+          title: "Capture a near-term ranking opportunity",
+          detail:
+            rankingOpportunities[0].query +
+            " is around position " +
+            Number(rankingOpportunities[0].position || 0).toFixed(1) +
+            " with " +
+            formatNumber(rankingOpportunities[0].impressions) +
+            " impressions; estimated upside ~" +
+            Number(rankingOpportunities[0].potentialClicks || 0).toFixed(1) +
+            " clicks.",
+          tone: "amber"
+        }]
+      : []),
+    ...(decaySignals.length
+      ? [{
+          priority: hasHostnameSplit ? 3 : 2,
+          title: "Investigate content decay",
+          detail:
+            shortPageUrl(decaySignals[0].page) +
+            " is down " +
+            Math.abs(Number(decaySignals[0].clickChangePct || 0)).toFixed(0) +
+            "% in clicks versus the previous period.",
+          tone: "amber"
+        }]
       : []),
     ...(contentOpportunities.length
-      ? [
-          {
-            priority: hasHostnameSplit ? 2 : 1,
-            title: "Improve a high-visibility page CTR",
-            detail:
-              contentOpportunities[0].label +
-              " has " +
-              (Number(contentOpportunities[0].ctr || 0) * 100).toFixed(1) +
-              "% CTR from " +
-              formatNumber(contentOpportunities[0].impressions) +
-              " impressions.",
-            tone: "amber"
-          }
-        ]
-      : []),
-    ...(anomalies.some(a => a.tone === "amber")
-      ? [
-          {
-            priority: hasHostnameSplit ? 3 : 2,
-            title: "Investigate the traffic drop",
-            detail: anomalies
-              .filter(a => a.tone === "amber")
-              .map(a => a.label + ": " + a.value.toFixed(0) + "%")
-              .join(" · "),
-            tone: "amber"
-          }
-        ]
+      ? [{
+          priority: hasHostnameSplit ? 4 : 2,
+          title: "Improve a high-visibility page CTR",
+          detail:
+            contentOpportunities[0].label +
+            " has " +
+            (Number(contentOpportunities[0].ctr || 0) * 100).toFixed(1) +
+            "% CTR from " +
+            formatNumber(contentOpportunities[0].impressions) +
+            " impressions.",
+          tone: "amber"
+        }]
       : []),
     ...(highTrafficContent.length
-      ? [
-          {
-            priority: hasHostnameSplit ? 4 : 3,
-            title: "Build around your strongest content",
-            detail:
-              highTrafficContent[0].label +
-              " is currently your strongest traffic page. Add related content and a clear consultation CTA.",
-            tone: "green"
-          }
-        ]
+      ? [{
+          priority: 4,
+          title: "Build around your strongest content",
+          detail:
+            highTrafficContent[0].label +
+            " is currently your strongest traffic page. Add related content and a clear consultation CTA.",
+          tone: "green"
+        }]
       : []),
     ...(conversionTotal === 0
-      ? [
-          {
-            priority: 4,
-            title: "Connect conversion tracking",
-            detail:
-              "GA4 has no tracked WhatsApp, phone or contact events yet, so the Hub cannot measure which traffic becomes an enquiry.",
-            tone: "blue"
-          }
-        ]
+      ? [{
+          priority: 4,
+          title: "Connect conversion tracking",
+          detail:
+            "GA4 has no tracked WhatsApp, phone or contact events yet, so the Hub cannot measure which traffic becomes an enquiry.",
+          tone: "blue"
+        }]
       : [])
-  ].slice(0, 4);
+  ].sort((a,b) => a.priority - b.priority).slice(0, 4);
 
   const cards = trafficData
     ? [
