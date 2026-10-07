@@ -147,6 +147,62 @@ function displayQuery(value) {
   return result;
 }
 
+function aggregateSearchPages(rows) {
+  const map = new Map();
+
+  (rows || []).forEach((row) => {
+    const rawPath = normalizeContentPath(row.page);
+    const path =
+      rawPath === "/"
+        ? "/"
+        : "/" + rawPath.replace(/^\/+|\/+$/g, "");
+
+    const impressions = Number(row.impressions || 0);
+    const clicks = Number(row.clicks || 0);
+    const position = Number(row.position || 0);
+    const current = map.get(path) || {
+      page: path,
+      path,
+      clicks: 0,
+      impressions: 0,
+      ctr: 0,
+      position: 0,
+      hostnames: []
+    };
+
+    const previousImpressions = current.impressions;
+    current.clicks += clicks;
+    current.impressions += impressions;
+    current.ctr = current.impressions
+      ? current.clicks / current.impressions
+      : 0;
+
+    if (impressions > 0) {
+      current.position =
+        previousImpressions > 0
+          ? ((current.position * previousImpressions) +
+              (position * impressions)) /
+            current.impressions
+          : position;
+    }
+
+    try {
+      const hostname = new URL(row.page).hostname;
+      if (hostname && !current.hostnames.includes(hostname)) {
+        current.hostnames.push(hostname);
+      }
+    } catch {
+      // Keep hostnames empty when Search Console returns a non-URL value.
+    }
+
+    map.set(path, current);
+  });
+
+  return Array.from(map.values()).sort(
+    (a, b) => Number(b.impressions || 0) - Number(a.impressions || 0)
+  );
+}
+
 function trafficSiteParam(selectedSite) {
   if (selectedSite === "Google Site") return "sites.google.com";
   return selectedSite;
@@ -376,34 +432,48 @@ function App() {
     .slice(0, 8);
 
   const seoQueryRows = site === "drastritmucaj.com" ? queryRows : [];
-  const seoPageRows = site === "drastritmucaj.com" ? pageRows : [];
+  const rawSeoPageRows = site === "drastritmucaj.com" ? pageRows : [];
+
+  const seoPageRows = React.useMemo(
+    () => aggregateSearchPages(rawSeoPageRows),
+    [rawSeoPageRows]
+  );
+
+  const hasHostnameSplit =
+    site === "drastritmucaj.com" &&
+    rawSeoPageRows.some(row => row.page.includes("www.")) &&
+    rawSeoPageRows.some(
+      row =>
+        row.page.includes("drastritmucaj.com") &&
+        !row.page.includes("www.")
+    );
 
   const opportunities = [
-    ...seoPageRows
-      .filter(row => row.impressions >= 20 && row.clicks === 0)
-      .slice(0, 2)
-      .map(row => ({
-        title: "Page with search visibility but no clicks",
-        text: `${shortPageUrl(row.page)} has ${formatNumber(
-          row.impressions
-        )} impressions and 0 clicks (avg. position ${row.position.toFixed(
-          1
-        )}).`,
-        tone: "amber"
-      })),
-
-    ...(seoPageRows.some(row => row.page.includes("www.")) &&
-    seoPageRows.some(row => row.page.includes("drastritmucaj.com") &&
-        !row.page.includes("www.")
-    )
+    ...(hasHostnameSplit
       ? [
           {
-            title: "Check www / non-www consistency",
-            text: "Search Console is reporting both www and non-www versions. Check redirects and canonical URLs so Google receives one preferred version.",
+            title: "Technical: fix www / non-www consistency",
+            text: "Search Console is reporting both www and non-www versions. Check the redirect and canonical setup before changing page titles.",
             tone: "blue"
           }
         ]
-      : [])
+      : []),
+    ...seoPageRows
+      .filter(
+        row =>
+          Number(row.impressions || 0) >= 50 &&
+          Number(row.clicks || 0) === 0
+      )
+      .slice(0, 2)
+      .map(row => ({
+        title: "Strong page opportunity",
+        text: `${shortPageUrl(row.page)} has ${formatNumber(
+          row.impressions
+        )} impressions, 0 clicks and average position ${Number(
+          row.position || 0
+        ).toFixed(1)}.`,
+        tone: "amber"
+      }))
   ].slice(0, 3);
 
   // Summary metrics always come from the hostname-filtered traffic endpoint.
@@ -414,28 +484,64 @@ function App() {
   const selectedEngagement = Number(trafficData?.siteEngagementRate || 0);
 
   const searchOpportunities = [
+    ...(hasHostnameSplit
+      ? [
+          {
+            title: "Technical: www / non-www split",
+            text: "Google is seeing both hostname variants. Verify one preferred canonical hostname and a consistent redirect before making content changes.",
+            tone: "blue"
+          }
+        ]
+      : []),
     ...seoQueryRows
-      .filter(row => Number(row.impressions || 0) >= 10 && Number(row.clicks || 0) === 0)
+      .filter(
+        row =>
+          Number(row.impressions || 0) >= 50 &&
+          Number(row.clicks || 0) === 0
+      )
       .slice(0, 1)
       .map(row => ({
-        title: "Query with impressions but no clicks",
-        text: `“${displayQuery(row.query)}” has ${formatNumber(row.impressions)} impressions but no clicks. Review the page title and search snippet.`,
+        title: "Strong query opportunity",
+        text: `“${displayQuery(row.query)}” has ${formatNumber(
+          row.impressions
+        )} impressions but no clicks. This is a meaningful enough sample to review the snippet and search intent.`,
         tone: "amber"
       })),
     ...seoQueryRows
-      .filter(row => Number(row.impressions || 0) >= 10 && Number(row.clicks || 0) > 0 && Number(row.ctr || 0) < 0.02)
+      .filter(
+        row =>
+          Number(row.impressions || 0) >= 50 &&
+          Number(row.clicks || 0) > 0 &&
+          Number(row.ctr || 0) < 0.02 &&
+          Number(row.position || 0) <= 10
+      )
       .slice(0, 1)
       .map(row => ({
-        title: "Query with low CTR",
-        text: `“${displayQuery(row.query)}” generated ${formatNumber(row.impressions)} impressions and ${formatNumber(row.clicks)} clicks (CTR ${(Number(row.ctr || 0) * 100).toFixed(1)}%).`,
+        title: "Strong query CTR opportunity",
+        text: `“${displayQuery(row.query)}” generated ${formatNumber(
+          row.impressions
+        )} impressions and ${formatNumber(
+          row.clicks
+        )} clicks (CTR ${(Number(row.ctr || 0) * 100).toFixed(1)}%) at average position ${Number(
+          row.position || 0
+        ).toFixed(1)}.`,
         tone: "blue"
       })),
     ...seoPageRows
-      .filter(row => Number(row.impressions || 0) >= 10 && Number(row.clicks || 0) === 0)
+      .filter(
+        row =>
+          Number(row.impressions || 0) >= 50 &&
+          Number(row.clicks || 0) === 0 &&
+          row.path !== "/"
+      )
       .slice(0, 1)
       .map(row => ({
-        title: "Page with search visibility but no clicks",
-        text: `${shortPageUrl(row.page)} has ${formatNumber(row.impressions)} impressions and 0 clicks (avg. position ${Number(row.position || 0).toFixed(1)}).`,
+        title: "Strong page opportunity",
+        text: `${shortPageUrl(row.page)} has ${formatNumber(
+          row.impressions
+        )} impressions, 0 clicks and average position ${Number(
+          row.position || 0
+        ).toFixed(1)}.`,
         tone: "amber"
       }))
   ].slice(0, 3);
@@ -479,20 +585,21 @@ function App() {
       .sort((a, b) => b.pageViews - a.pageViews);
   }, [filteredPageRows, seoPageRows]);
 
-  const contentSearchRows = [...seoPageRows]
+  const contentSearchRows = seoPageRows
     .map(row => ({
       ...row,
-      path: normalizeContentPath(row.page),
-      label: contentLabel(normalizeContentPath(row.page))
+      path: row.path || normalizeContentPath(row.page),
+      label: contentLabel(row.path || normalizeContentPath(row.page))
     }))
     .sort((a, b) => Number(b.impressions || 0) - Number(a.impressions || 0));
 
   const highTrafficContent = contentRows.slice(0, 4);
   const searchVisibilityContent = contentSearchRows.slice(0, 4);
   const contentOpportunities = contentSearchRows
-    .filter(row =>
-      Number(row.impressions || 0) >= 10 &&
-      Number(row.ctr || 0) < 0.02
+    .filter(
+      row =>
+        Number(row.impressions || 0) >= 50 &&
+        Number(row.ctr || 0) < 0.02
     )
     .slice(0, 3);
 
@@ -545,8 +652,10 @@ function App() {
       text: item.text,
       evidence: item.text,
       recommendation:
-        item.title.includes("no clicks")
-          ? "Rewrite the page title and meta description around the search intent, then monitor CTR."
+        item.title.includes("www / non-www") || item.title.includes("hostname")
+          ? "Check redirects and canonical URLs first. Only retest titles/snippets after Google consistently sees one preferred hostname."
+          : item.title.includes("no clicks")
+          ? "Review the search intent and snippet. Ten impressions is treated as an early signal; these recommendations now require a larger sample."
           : "Review the search snippet and test a clearer, more specific title.",
       action: "Review search data →",
       tone: item.tone || "amber"
@@ -557,8 +666,10 @@ function App() {
       text: `${formatNumber(row.impressions)} impressions → ${formatNumber(row.clicks)} clicks → ${(Number(row.ctr || 0) * 100).toFixed(1)}% CTR.`,
       evidence: `${formatNumber(row.impressions)} impressions, ${formatNumber(row.clicks)} clicks, average position ${Number(row.position || 0).toFixed(1)}.`,
       recommendation:
-        Number(row.position || 0) <= 10
-          ? "Improve the title and meta description first; the page already has search visibility."
+        hasHostnameSplit && row.path === "/"
+          ? "Fix the www/non-www redirect and canonical setup first. The homepage already has strong search visibility, so technical consistency comes before snippet edits."
+          : Number(row.position || 0) <= 10
+          ? "The page already has strong search visibility. Test a clearer title/meta description and monitor CTR."
           : "Strengthen the page content and search targeting before retesting the snippet.",
       action: "Review content →",
       tone: "blue"
@@ -632,10 +743,68 @@ function App() {
     .slice(0, 5);
 
   const priorityActions = [
-    ...(contentOpportunities.length ? [{ priority: 1, title: "Improve a high-visibility page CTR", detail: contentOpportunities[0].label + " has " + (Number(contentOpportunities[0].ctr || 0) * 100).toFixed(1) + "% CTR from " + formatNumber(contentOpportunities[0].impressions) + " impressions.", tone: "amber" }] : []),
-    ...(anomalies.some(a => a.tone === "amber") ? [{ priority: 2, title: "Investigate the traffic drop", detail: anomalies.filter(a => a.tone === "amber").map(a => a.label + ": " + a.value.toFixed(0) + "%").join(" · "), tone: "amber" }] : []),
-    ...(highTrafficContent.length ? [{ priority: 3, title: "Build around your strongest content", detail: highTrafficContent[0].label + " is currently your strongest traffic page. Add related content and a clear consultation CTA.", tone: "green" }] : []),
-    ...(conversionTotal === 0 ? [{ priority: 4, title: "Connect conversion tracking", detail: "GA4 has no tracked WhatsApp, phone or contact events yet, so the Hub cannot measure which traffic becomes an enquiry.", tone: "blue" }] : [])
+    ...(hasHostnameSplit
+      ? [
+          {
+            priority: 1,
+            title: "Fix www / non-www consistency",
+            detail: "Google Search Console is reporting both hostname variants. Verify redirects and canonical URLs before treating homepage CTR as a content problem.",
+            tone: "blue"
+          }
+        ]
+      : []),
+    ...(contentOpportunities.length
+      ? [
+          {
+            priority: hasHostnameSplit ? 2 : 1,
+            title: "Improve a high-visibility page CTR",
+            detail:
+              contentOpportunities[0].label +
+              " has " +
+              (Number(contentOpportunities[0].ctr || 0) * 100).toFixed(1) +
+              "% CTR from " +
+              formatNumber(contentOpportunities[0].impressions) +
+              " impressions.",
+            tone: "amber"
+          }
+        ]
+      : []),
+    ...(anomalies.some(a => a.tone === "amber")
+      ? [
+          {
+            priority: hasHostnameSplit ? 3 : 2,
+            title: "Investigate the traffic drop",
+            detail: anomalies
+              .filter(a => a.tone === "amber")
+              .map(a => a.label + ": " + a.value.toFixed(0) + "%")
+              .join(" · "),
+            tone: "amber"
+          }
+        ]
+      : []),
+    ...(highTrafficContent.length
+      ? [
+          {
+            priority: hasHostnameSplit ? 4 : 3,
+            title: "Build around your strongest content",
+            detail:
+              highTrafficContent[0].label +
+              " is currently your strongest traffic page. Add related content and a clear consultation CTA.",
+            tone: "green"
+          }
+        ]
+      : []),
+    ...(conversionTotal === 0
+      ? [
+          {
+            priority: 4,
+            title: "Connect conversion tracking",
+            detail:
+              "GA4 has no tracked WhatsApp, phone or contact events yet, so the Hub cannot measure which traffic becomes an enquiry.",
+            tone: "blue"
+          }
+        ]
+      : [])
   ].slice(0, 4);
 
   const cards = trafficData
