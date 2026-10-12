@@ -625,7 +625,7 @@ function App() {
       value: trafficData
         ? formatNumber(selectedPageUsers)
         : "—",
-      detail: "Measured by GA4 · selected site · last 30 days",
+      detail: `Measured by GA4 · selected site · last ${trafficDays} days, through yesterday`,
       status: trafficData ? "live" : "loading"
     },
     {
@@ -945,15 +945,15 @@ function App() {
                 ? "Connecting to live Google Analytics data…"
                 : error
                 ? `GA4 connection error: ${error}`
-                : "Data source: live GA4 · Property 549643321 · hostname filtered"}
+                : "Source: Google Analytics 4 · hostname-filtered report"}
             </span>
           </div>
 
           <div className="notice-actions">
             <small>
               {lastUpdated
-                ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                : "Live data"}
+                ? `Checked ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                : "Refresh to verify"}
             </small>
             <button
               className="refresh-button"
@@ -999,7 +999,7 @@ function App() {
                   ? "Loading…"
                   : trafficError
                   ? "Unavailable"
-                  : "Selected site · GA4 hostname-filtered · last 30 days"}
+                  : `Selected site · GA4 · last ${trafficDays} days, through yesterday`}
               </small>
             </div>
           ))}
@@ -1053,7 +1053,7 @@ function App() {
                 <b>{searchData ? formatNumber(searchData.clicks) : "—"}</b>
                 <small>
                   {searchData
-                    ? `${formatNumber(searchData.impressions)} impressions · ${formatPercent(searchData.ctr)} CTR`
+                    ? `${formatNumber(searchData.impressions)} impressions · ${formatPercent(searchData.ctr)} CTR · last 30 days through ${searchData.dataThrough || "yesterday"}`
                     : "Waiting for Search Console"}
                 </small>
               </div>
