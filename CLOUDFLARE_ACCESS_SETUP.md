@@ -58,6 +58,12 @@ After saving the custom domain in GitHub Pages:
 
 Do not change the apex/root records for `drastritmucaj.com` or any existing production DNS records. Check the GitHub Pages domain verification and HTTPS status before proceeding. GitHub's official DNS guidance should be followed if Pages reports a validation issue.
 
+## What is protected
+
+The GitHub Pages dashboard shell remains publicly reachable at its custom hostname in this setup. The sensitive analytics data endpoints are protected by Cloudflare Access at the Worker. Anyone opening the dashboard without an API Access session should see the interface but should not be able to retrieve GA4, Search Console, or traffic data.
+
+If you later want the dashboard shell itself to require login, create a separate hostname-based Access application for `hub.drastritmucaj.com` after GitHub Pages custom-domain HTTPS has been validated. Do not add that extra protection during this first API integration, because it can interfere with Pages certificate and domain validation if enabled too early.
+
 ## Browser login and CORS
 
 The dashboard uses simple GET requests without custom headers. Those requests should not require a CORS preflight. The API returns the exact allowed origin and `Access-Control-Allow-Credentials: true`.
