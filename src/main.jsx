@@ -7,9 +7,13 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
-const API_URL = "https://website-performance-hub-api.astritmucaj.workers.dev/api/ga4";
-const SEARCH_API_URL = "https://website-performance-hub-api.astritmucaj.workers.dev/api/search-console";
-const TRAFFIC_API_URL = "https://website-performance-hub-api.astritmucaj.workers.dev/api/traffic";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://website-performance-hub-api.astritmucaj.workers.dev"
+).replace(/\/+$/, "");
+const API_URL = `${API_BASE_URL}/api/ga4`;
+const SEARCH_API_URL = `${API_BASE_URL}/api/search-console`;
+const TRAFFIC_API_URL = `${API_BASE_URL}/api/traffic`;
 
 const sites = [
   "drastritmucaj.com",
@@ -290,6 +294,7 @@ function App() {
 
       try {
         const response = await fetch(API_URL, {
+          credentials: "include",
           signal: controller.signal
         });
 
@@ -320,6 +325,7 @@ function App() {
 
       try {
         const response = await fetch(SEARCH_API_URL, {
+          credentials: "include",
           signal: controller.signal
         });
 
@@ -368,6 +374,7 @@ function App() {
             selectedApiSite
           )}&days=${trafficDays}`,
           {
+            credentials: "include",
             signal: controller.signal
           }
         );
@@ -923,6 +930,16 @@ function App() {
               <option value={30}>Last 30 days</option>
               <option value={90}>Last 90 days</option>
             </select>
+
+            <a
+              className="api-auth-link"
+              href={API_BASE_URL}
+              target="_blank"
+              rel="noreferrer"
+              title="Open the API sign-in page. After signing in, return here and refresh the dashboard."
+            >
+              Secure API sign-in ↗
+            </a>
           </div>
         </header>
 
